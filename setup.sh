@@ -16,10 +16,10 @@ rsync -a "$SK/assets/fonts/" "$WS/assets/fonts/"
 cp "$SK/VERSION" "$WS/.skill_version"
 [ -f "$WS/CLAUDE.md" ] || sed -e "s#{{SK}}#$SK#g" -e "s#{{PY}}#.venv/bin/python#g" -e "s#{{OS}}#macOS Apple Silicon (videotoolbox)#g" \
   -e "s#{{REVEAL}}#open -R <file>#g" "$SK/templates/CLAUDE.md.tpl" > "$WS/CLAUDE.md"
-echo "== 4/5 Python (.venv): numpy scipy pillow psutil mlx-whisper"
+echo "== 4/5 Python (.venv): numpy scipy pillow psutil mlx-whisper opencv"
 [ -x "$WS/.venv/bin/python" ] || "$(brew --prefix python@3.12)/bin/python3.12" -m venv "$WS/.venv"
 "$WS/.venv/bin/pip" install -q --upgrade pip
-"$WS/.venv/bin/pip" install -q numpy scipy pillow psutil mlx-whisper
+"$WS/.venv/bin/pip" install -q numpy scipy pillow psutil mlx-whisper opencv-python-headless
 echo "== Lọc tạp âm giọng: DeepFilterNet 0.5.6 → bin/deep-filter"
 (cd "$WS" && .venv/bin/python scripts/denoise.py --install) || echo "  (chưa tải được deep-filter — chạy lại setup khi có mạng)"
 echo "== Nhạc nền có giấy phép (Mixkit) → assets/music/_downloaded"

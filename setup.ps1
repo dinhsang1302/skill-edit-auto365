@@ -37,7 +37,7 @@ Write-Host "== 5/6 Python (.venv): numpy scipy pillow psutil faster-whisper + CU
 Set-Location $WS
 if (-not (Test-Path ".venv")) { py -3.12 -m venv .venv }
 .\.venv\Scripts\python -m pip install -q --upgrade pip
-.\.venv\Scripts\python -m pip install -q numpy scipy pillow psutil faster-whisper nvidia-cublas-cu12 "nvidia-cudnn-cu12==9.*"
+.\.venv\Scripts\python -m pip install -q numpy scipy pillow psutil opencv-python-headless faster-whisper nvidia-cublas-cu12 "nvidia-cudnn-cu12==9.*"
 if ($LASTEXITCODE -ne 0) { Write-Host "pip loi - xem thong bao o tren"; exit 1 }
 [Environment]::SetEnvironmentVariable("PYTHONUTF8", "1", "User"); $env:PYTHONUTF8 = "1"
 

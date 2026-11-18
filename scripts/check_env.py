@@ -31,7 +31,7 @@ else:
         (ok if "h264_nvenc" in enc else bad)("encoder h264_nvenc (nháp)")
     print("  (libass/subtitles không cần: phụ đề vẽ bằng Pillow)")
 print("== Python", sys.version.split()[0], sys.executable)
-for m, pipn in [("numpy", "numpy"), ("scipy", "scipy"), ("PIL", "pillow")] + ([] if MAC else [("psutil", "psutil")]):
+for m, pipn in [("numpy", "numpy"), ("scipy", "scipy"), ("PIL", "pillow"), ("cv2", "opencv-python-headless")] + ([] if MAC else [("psutil", "psutil")]):
     try: importlib.import_module(m); ok(m)
     except ImportError: bad(f"{m} (pip install {pipn})")
 if MAC:

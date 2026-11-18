@@ -17,6 +17,10 @@ Cách dùng:
        bản giao libx264 → output/<NAME>_<ratio>_v2.mp4:
          Mac:        FINAL=1 VER=2 .venv/bin/python projects/<X>/work/build.py
          PowerShell: $env:FINAL=1; $env:VER=2; .venv\\Scripts\\python projects\\<X>\\work\\build.py; Remove-Item Env:FINAL,Env:VER
+Độ phân giải (anh chốt 18/11/2026): NHÁP để rà = 360p (vẽ thẳng ở 640x360 / 360x640 → rất nhanh, file nhẹ);
+  BẢN GIAO (clip chính) = 4K (3840x2160 / 2160x3840, vẽ chữ thẳng ở 4K cho nét, encode HEVC phần cứng 45 Mbit; máy không GPU → libx264).
+  Toạ độ/cỡ chữ trong SEGS, CAP luôn viết theo khung THIẾT KẾ W×H (1920x1080 hoặc 1080x1920); build tự nhân hệ số E.S.
+  Ép cỡ khác: RES=<cạnh ngắn> (vd. RES=1080).
 Tham số môi trường: FINAL=1 (bản giao), VER=<n> (số phiên bản, mỗi lần sửa tăng 1, không ghi đè bản cũ),
   SKIP_CHECK=1 (bỏ qua soát bố cục — chỉ khi đã soát mắt).
 """
@@ -31,7 +35,7 @@ import e365 as E
 
 # ---------------- CẤU HÌNH ----------------
 NAME = "Demo"                                               # tên sản phẩm trong tên file giao
-W, H, FPS = 1920, 1080, 30                                  # 16:9; bản 9:16 → 1080, 1920. FPS = đúng fps nguồn
+W, H, FPS = 1920, 1080, 30                                  # khung THIẾT KẾ 16:9; bản 9:16 → 1080, 1920. FPS = đúng fps nguồn
 RATIO = "9x16" if H > W else "16x9"
 THEME = "dark"                                              # Skill Edit Auto365: Anton trắng + keyword đỏ + Playfair nghiêng
 GRADE = E.GRADE_NEUTRAL
@@ -40,11 +44,13 @@ MUSIC = "auto"                                              # "auto" tự chọn
 MUSIC_GAIN = 0.22
 SFX_WHOOSH = None                                           # vd. "whoosh/Transitions SFX_13.wav" (tính từ assets/sfx) — chỉ ở chuyển cảnh lớn; bảng chuẩn: assets/sfx/QUY_TAC_SU_DUNG.md
 DENOISE = "strong"                                          # lọc tạp âm giọng: "strong" siêu mạnh · "soft" giọng nhỏ/xa · None tắt
+FACE_CHECK = True                                           # chặn render nếu chữ động đè đầu/vai người (YuNet) — không tắt khi giao bản
 AUTO_COVER = True                                           # thiếu covers → tự lấy ảnh/clip có sẵn trong insert/; không có gì → punch-in (đổi cỡ khung)
 COVER = 2.0                                                 # giây trám quanh mỗi mối cắt lặp/vấp (≥ 1,5 s, ≤ 3 s)
 VER = int(os.environ.get("VER", "1")); FINAL = os.environ.get("FINAL") == "1"
 OUT = PRJ / "work/seg"; OUT.mkdir(parents=True, exist_ok=True)
-DELIVER = PRJ / "output" / (f"{NAME}_{RATIO}_v{VER}" + ("" if FINAL else "_nhap") + ".mp4")
+RES = int(os.environ.get("RES") or (2160 if FINAL else 360))  # cạnh ngắn: nháp 360p, bản giao 4K
+DELIVER = PRJ / "output" / (f"{NAME}_{RATIO}_v{VER}" + ("" if FINAL else f"_nhap{RES}p") + ".mp4")
 
 def sh(o, src, ss, **p): return (o, src, ss, p)             # shot: (giây trong đoạn, file trong dự án, giây nguồn, z=(z0,z1), c=(cx,cy))
 def K(y, *words, x=None, align="center", end=None):        # 1 dòng chữ động; words = (giây nguồn, chữ, kiểu w|k|it, cỡ)
@@ -70,6 +76,15 @@ SEGS = [
 ]
 for _s in SEGS:                                             # bỏ khúc lặp/vấp khỏi keep (giữ bản gốc ở keep0 để tra)
     if _s.get("cuts"): _s["keep0"] = _s["keep"]; _s["keep"] = E.keep_minus(_s["keep"], _s["cuts"])
+
+# ---- đổi khung thiết kế → khung render (nháp 360p / giao 4K): mọi toạ độ, cỡ chữ nhân E.S ----
+E.S = RES / min(W, H)
+W, H = round(W * E.S / 2) * 2, round(H * E.S / 2) * 2
+CAP = dict(CAP, size=round(CAP["size"] * E.S), y=round(CAP["y"] * E.S))
+for _s in SEGS:
+    for ln in _s.get("kin", []):
+        ln["y"] = round(ln["y"] * E.S); ln["x"] = None if ln["x"] is None else round(ln["x"] * E.S)
+        ln["words"] = [(t, txt, sty, round(size * E.S)) for t, txt, sty, size in ln["words"]]
 # ------------------------------------------
 
 def seg_len(s): return E.keep_len(s["keep"], FPS)
@@ -125,6 +140,30 @@ def shots_of(s):
             res.append((b, src, (E.out2src(keep, b) if p.get("sync") else ss + b - o0), p))
     return sorted(res, key=lambda x: x[0])
 
+def frame_at(s, t):
+    """Khung hình (W×H) của đoạn tại giây t — để soát chữ đè mặt trước khi render."""
+    sh = shots_of(s); L = seg_len(s); k = max(j for j, x in enumerate(sh) if x[0] <= t + 1e-6)
+    o0, src, ss, p = sh[k]; o1 = sh[k + 1][0] if k + 1 < len(sh) else L
+    z0, z1 = p.get("z", (1, 1)); z = z0 + (z1 - z0) * E.smooth((t - o0) / max(o1 - o0, 1e-3))
+    rd = E.reader_for(PRJ / src, ss + (t - o0), W, H, z=(z, z), fps=FPS, grade=GRADE)
+    try: return E.frame_from(rd, W, H, z, p.get("c", (.5, .5)))
+    finally: rd.close()
+
+def check_faces(s):
+    """Chữ động không được đè đầu/vai người (soát 3 khung mỗi dòng chữ: lúc hiện, giữa, lúc xuống)."""
+    errs = []
+    for pl, a, b in kin_placed(s):
+        bx = E.line_box(pl); txt = " ".join(w.text for w, _, _ in pl)
+        for t in sorted({round(a + 0.3, 2), round((a + b) / 2, 2), round(max(a, b - 0.5), 2)}):
+            for zone, z in E.face_zones(frame_at(s, min(t, seg_len(s) - 0.05))):
+                if E.boxes_overlap(bx, tuple(map(int, z)), 16):
+                    side = "bên trái" if (z[0] + z[2]) / 2 > W / 2 else "bên phải"
+                    errs.append(f"đoạn {s['id']}: chữ '{txt}' đè {zone} người lúc {t:.2f}s → dời sang {side} khung (đối diện người) hoặc hạ xuống vùng trống")
+                    break
+            else: continue
+            break
+    return errs
+
 def check(s):
     """Soát trước: chữ động lòi khung / đè phụ đề / sát nhau. Phụ đề tự ẩn khi chữ động đang hiện,
     nên chỉ báo khi hai thứ thật sự cùng hiện."""
@@ -166,7 +205,7 @@ def render_seg(s, path):
 
 def seg_hash(s):
     src = Path(__file__).read_text() + Path(E.__file__).read_text()
-    return hashlib.md5((json.dumps(s, sort_keys=True, ensure_ascii=False, default=str) + src + str(FINAL) + str(auto_covers())).encode()).hexdigest()[:10]
+    return hashlib.md5((json.dumps(s, sort_keys=True, ensure_ascii=False, default=str) + src + str(FINAL) + str(RES) + str(auto_covers())).encode()).hexdigest()[:10]
 
 def job(s):
     p = OUT / f"seg_{s['id']}_{seg_hash(s)}.mp4"
@@ -192,8 +231,12 @@ def audio(total, starts):
 
 if __name__ == "__main__":
     E.start_cpu_watch(PRJ / "work/cpu_watch.log", 50)      # luật máy: trần 500% CPU suốt job
+    print(f"render {W}x{H} ({'BẢN GIAO' if FINAL else 'NHÁP rà'}{' 4K' if min(W, H) >= 2160 else f' {RES}p'})")
+    if FINAL and min(W, H) >= 2160:
+        lo = [s["a"] for s in SEGS if min(E.probe(PRJ / s["a"])["w"], E.probe(PRJ / s["a"])["h"]) < 2160]
+        if lo: print("  lưu ý: nguồn dưới 4K sẽ được phóng lên 4K:", ", ".join(sorted(set(map(str, lo)))))
     only = sys.argv[1:]; todo = [s for s in SEGS if not only or s["id"] in only]
-    errs = sum((check(s) for s in todo), [])
+    errs = sum((check(s) + (check_faces(s) if FACE_CHECK else []) for s in todo), [])
     if errs and os.environ.get("SKIP_CHECK") != "1": raise SystemExit("Soát bố cục lỗi:\n  " + "\n  ".join(errs))
     paths = [job(s) for s in todo]                          # tuần tự, từng đoạn một
     if only: print("\n".join(map(str, paths))); sys.exit()

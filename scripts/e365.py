@@ -107,6 +107,8 @@ def start_cpu_watch(log, pct=50):
 
 
 # ---------------- Hình ----------------
+S = 1.0                                                    # hệ số vẽ: toạ độ thiết kế (1920x1080 / 1080x1920) × S = cỡ render
+                                                           # nháp 360p: S = 1/3 · bản giao 4K: S = 2 (build_template đặt E.S)
 _HW_MODE = {}                                              # (HW, bits) → chế độ đã thử chạy được
 
 class VReader:
@@ -182,12 +184,17 @@ class Encoder:
     Bản giao (final=True): libx264 crf18 medium, X264_THREADS luồng, lookahead-threads=1
     (Mac đo 12/10: 4 luồng → đỉnh 648%, 2 luồng → 446% = dưới trần 500%)."""
     def __init__(self, path, W, H, fps, final=False):
-        if final:
+        big = min(W, H) >= 2000                            # bản giao 4K: x264 2 luồng quá chậm → HEVC phần cứng 45 Mbit (gần 0 CPU)
+        if final and big and HW == "vt":
+            codec = ["-c:v", "hevc_videotoolbox", "-b:v", "45M", "-tag:v", "hvc1"]
+        elif final and big and HW == "cuda":
+            codec = ["-c:v", "hevc_nvenc", "-preset", "p6", "-b:v", "45M", "-tag:v", "hvc1"]
+        elif final:
             codec = ["-threads", X264_THREADS, "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-x264-params", "lookahead-threads=1"]
         elif HW == "vt":
-            codec = ["-c:v", "h264_videotoolbox", "-b:v", "12M"]
+            codec = ["-c:v", "h264_videotoolbox", "-b:v", "12M" if big else ("1500k" if min(W, H) <= 400 else "12M")]
         elif HW == "cuda":
-            codec = ["-c:v", "h264_nvenc", "-preset", "p4", "-b:v", "12M"]
+            codec = ["-c:v", "h264_nvenc", "-preset", "p4", "-b:v", "1500k" if min(W, H) <= 400 else "12M"]
         else:
             codec = ["-threads", "4", "-c:v", "libx264", "-crf", "20", "-preset", "veryfast"]
         self.p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
@@ -211,20 +218,21 @@ class Word:
     Chốt 18/11/2026: chữ pop up lên rồi ĐỨNG YÊN ≥ HOLD_MIN (1,2 s) mới được xuống; vào/ra đều ease mượt + mờ dần,
     không lên/xuống đột ngột. t_out ngắn hơn mức tối thiểu sẽ tự kéo dài (build báo nếu tràn hết đoạn)."""
     IN_MASK, IN_SLIDE, OUT, HOLD_MIN = 0.55, 0.80, 0.35, 1.2
-    def __init__(self, text, sty, size, t_in, t_out=99, slide=-1, theme="dark", pad=40):
-        path, col, ink, sw = STYLES[theme][sty]; f = ImageFont.truetype(str(path), size)
+    def __init__(self, text, sty, size, t_in, t_out=99, slide=-1, theme="dark", pad=None):
+        pad = round(40 * S) if pad is None else pad
+        path, col, ink, sw = STYLES[theme][sty]; f = ImageFont.truetype(str(path), size); sw = round(sw * S)
         l, t, r, b = f.getbbox(text, anchor="ls", stroke_width=sw)
         w, h = r - l + 2 * pad, b - t + 2 * pad
         txt = Image.new("RGBA", (w, h)); ImageDraw.Draw(txt).text((pad - l, pad - t), text, font=f, fill=col + (255,), anchor="ls",
                                                                 stroke_width=sw, stroke_fill=(ink or col) + (255,))
-        shd = Image.new("RGBA", (w, h)); ImageDraw.Draw(shd).text((pad - l, pad - t + 5), text, font=f, fill=(0, 0, 0, 190), anchor="ls",
-                                                                stroke_width=sw + 2, stroke_fill=(0, 0, 0, 190))
-        self.img = Image.alpha_composite(shd.filter(ImageFilter.GaussianBlur(8)), txt)
+        shd = Image.new("RGBA", (w, h)); ImageDraw.Draw(shd).text((pad - l, pad - t + 5 * S), text, font=f, fill=(0, 0, 0, 190), anchor="ls",
+                                                                stroke_width=sw + round(2 * S), stroke_fill=(0, 0, 0, 190))
+        self.img = Image.alpha_composite(shd.filter(ImageFilter.GaussianBlur(8 * S)), txt)
         self.off = (l - pad, t - pad); self.adv = f.getlength(text); self.space = f.getlength(" ")
         self.top, self.bot = t, b                          # so với baseline (t âm)
         t_out = max(t_out, t_in + (self.IN_MASK if sty != "it" else self.IN_SLIDE) + self.HOLD_MIN)   # đứng đủ lâu mới xuống
         self.t_in, self.t_out, self.slide, self.text = t_in, t_out, slide, text
-        self.mask = sty != "it"; self.gh = b - t; self.clip = pad + (b - t) + 12
+        self.mask = sty != "it"; self.gh = b - t; self.clip = pad + (b - t) + round(12 * S)
     def draw(self, canvas, t, x, y):
         if t < self.t_in or t > self.t_out + self.OUT: return
         im = self.img; X = x + self.off[0]; Y = y + self.off[1]
@@ -240,16 +248,17 @@ class Word:
         else:
             p = ease((t - self.t_in) / self.IN_SLIDE)
             q = ease((t - self.t_out) / self.OUT) if t > self.t_out else 0
-            X += int(self.slide * (70 * (1 - p) - 50 * q))
+            X += int(self.slide * S * (70 * (1 - p) - 50 * q))
             a = min(1, (t - self.t_in) / 0.25) * (1 - q)
-            if p < 0.6: im = im.filter(ImageFilter.GaussianBlur(3 * (1 - p / 0.6)))
+            if p < 0.6: im = im.filter(ImageFilter.GaussianBlur(3 * S * (1 - p / 0.6)))
         if a < 1:
             im = im.copy(); im.putalpha(im.getchannel("A").point(lambda v: int(v * a)))
         canvas.alpha_composite(im, (X, Y))                # X,Y đã được layout_line kẹp trong vùng an toàn
 
-def layout_line(words, y, W, H, x=None, align="center", gap=0.55, safe=60):
+def layout_line(words, y, W, H, x=None, align="center", gap=0.55, safe=None):
     """Xếp 1 dòng chữ động; trả [(word, x, y_baseline)]. Chống TRÀN KHUNG (lỗi đã gặp 11/10: "LOẠI NÀO CŨNG ĐƯỢC",
     "ĐANG CÓ VOUCHER" lòi mép): dòng rộng hơn W-2*safe → báo lỗi để giảm cỡ/bẻ dòng; lệch mép → dời vào trong."""
+    safe = round(60 * S) if safe is None else safe
     sp = [w.space * gap * 2 for w in words]; total = sum(w.adv for w in words) + sum(sp[:-1])
     if total > W - 2 * safe:
         raise ValueError(f"Dòng chữ động quá rộng ({total:.0f}px > {W - 2 * safe}px): "
@@ -262,8 +271,9 @@ def layout_line(words, y, W, H, x=None, align="center", gap=0.55, safe=60):
     for w, s in zip(words, sp): out.append((w, int(x0), y)); x0 += w.adv + s
     return out
 
-def line_box(placed, slide=70):
+def line_box(placed, slide=None):
     """Hộp bao (x0,y0,x1,y1) của 1 dòng đã xếp, nới theo quãng trượt của chữ nghiêng."""
+    slide = 70 * S if slide is None else slide
     xs0 = [x - (slide if not w.mask else 0) for w, x, _ in placed]; xs1 = [x + w.adv + (slide if not w.mask else 0) for w, x, _ in placed]
     return (min(xs0), min(y + w.top for w, _, y in placed), max(xs1), max(y + w.bot for w, _, y in placed))
 
@@ -278,14 +288,14 @@ def cap_img(txt, size=66, font=F_CAPTION, maxw=None, W=1920, color=WHITE, ink=IN
         if f.getlength(txt) > maxw and len(txt.split()) > 1:
             ws = txt.split(); k = min(range(1, len(ws)), key=lambda i: abs(f.getlength(" ".join(ws[:i])) - f.getlength(" ".join(ws[i:]))))
             lines = [" ".join(ws[:k]), " ".join(ws[k:])]
-        if max(f.getlength(l) for l in lines) <= maxw or size <= 30: break
-        size -= 4
-    lh = int(size * 1.32); sw = max(3, size // 18)
-    wd = int(max(f.getlength(l) for l in lines)) + 60; hh = lh * len(lines) + 40
+        if max(f.getlength(l) for l in lines) <= maxw or size <= 30 * S: break
+        size -= max(1, round(4 * S))
+    lh = int(size * 1.32); sw = max(max(1, round(3 * S)), size // 18); P = round(20 * S)
+    wd = int(max(f.getlength(l) for l in lines)) + 3 * P; hh = lh * len(lines) + 2 * P
     shd = Image.new("RGBA", (wd, hh)); im = Image.new("RGBA", (wd, hh))
     for i, l in enumerate(lines):
-        cy = 20 + lh * i + lh // 2
-        ImageDraw.Draw(shd).text((wd / 2, cy + 4), l, font=f, anchor="mm", fill=(0, 0, 0, 200), stroke_width=sw + 3, stroke_fill=(0, 0, 0, 200))
+        cy = P + lh * i + lh // 2
+        ImageDraw.Draw(shd).text((wd / 2, cy + 4 * S), l, font=f, anchor="mm", fill=(0, 0, 0, 200), stroke_width=sw + round(3 * S), stroke_fill=(0, 0, 0, 200))
         x = wd / 2 - f.getlength(l) / 2
         parts = l.split(keyword, 1) if keyword and keyword in l else [l]
         for j, part in enumerate(parts):
@@ -293,7 +303,7 @@ def cap_img(txt, size=66, font=F_CAPTION, maxw=None, W=1920, color=WHITE, ink=IN
                 if not seg: continue
                 ImageDraw.Draw(im).text((x, cy), seg, font=f, anchor="lm", fill=col, stroke_width=sw, stroke_fill=ink)
                 x += f.getlength(seg)
-    return Image.alpha_composite(shd.filter(ImageFilter.GaussianBlur(6)), im)
+    return Image.alpha_composite(shd.filter(ImageFilter.GaussianBlur(6 * S)), im)
 
 def pop_scale(t, d=0.14):
     """Pop nhẹ 140 ms cho phụ đề: 0.92 → 1.03 → 1.0."""
@@ -305,9 +315,10 @@ def pop_scale(t, d=0.14):
 def boxes_overlap(a, b, gap=0):
     return not (a[2] + gap <= b[0] or b[2] + gap <= a[0] or a[3] + gap <= b[1] or b[3] + gap <= a[1])
 
-def check_layout(items, W, H, safe=40, gap=24):
+def check_layout(items, W, H, safe=None, gap=None):
     """items: [(tên, (x0,y0,x1,y1), t0, t1)]. Báo: lòi khỏi vùng an toàn; hai thứ hiện cùng lúc mà đè nhau hoặc
     cách nhau < gap px (lỗi đã gặp: phụ đề đè chữ động, nút CTA sát phụ đề). Trả list lỗi (rỗng = sạch)."""
+    safe = round(40 * S) if safe is None else safe; gap = round(24 * S) if gap is None else gap
     errs = []
     for n, bx, a, b in items:
         if bx[0] < safe or bx[1] < safe or bx[2] > W - safe or bx[3] > H - safe: errs.append(f"{n}: lòi vùng an toàn {bx}")
@@ -317,6 +328,24 @@ def check_layout(items, W, H, safe=40, gap=24):
             if a1 < e2 and a2 < e1 and boxes_overlap(b1, b2, gap): errs.append(f"{n1} ↔ {n2}: đè/sát (<{gap}px) lúc {max(a1, a2):.2f}s")
     return errs
 
+
+_FACE = None
+def face_zones(img):
+    """Vùng CẤM chữ quanh người trong 1 khung (PIL RGB/RGBA cỡ W×H): [(tên, (x0,y0,x1,y1))].
+    YuNet (scripts/data/face_yunet...onnx, OpenCV). "đầu" = mặt nới rộng (tóc, cằm); "vai" = vùng vai–ngực trên.
+    Lỗi Corolla Cross v2 (18/11/2026): chữ "3M CR BLK" đè mặt MC, "20 TRIỆU"/"XỨNG ĐÁNG?" sát đầu–vai."""
+    global _FACE
+    import cv2
+    W, H = img.size; k = 640 / W; small = np.asarray(img.convert("RGB").resize((640, round(H * k))))[:, :, ::-1].copy()
+    if _FACE is None:
+        _FACE = cv2.FaceDetectorYN.create(str(ROOT / "scripts/data/face_detection_yunet_2023mar.onnx"), "", (640, small.shape[0]), 0.7, 0.3, 50)
+    _FACE.setInputSize((640, small.shape[0])); _, faces = _FACE.detect(small); res = []
+    for f in (faces if faces is not None else []):
+        x, y, w, h = (float(v) / k for v in f[:4])
+        if h < H * 0.04: continue                         # mặt quá nhỏ (người ở xa) — bỏ
+        res.append(("đầu", (x - 0.55 * w, y - 0.75 * h, x + 1.55 * w, y + 1.35 * h)))
+        res.append(("vai", (x - 1.3 * w, y + 1.2 * h, x + 2.3 * w, y + 2.6 * h)))
+    return res
 
 # ---------------- Khung kính, CTA, nền ----------------
 def rounded(im, r, border=2, balpha=110):

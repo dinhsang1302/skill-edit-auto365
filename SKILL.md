@@ -48,8 +48,12 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    tìm lỗi video AI (tay, chữ, logo méo) → cắt hình giữ tiếng, phủ insert. Ghi danh mục tư liệu vào `brief.md`.
 2. **Transcript**: `<python> scripts/transcribe.py <file> <dự án>/work/words.json`, hiệu đính tay tên sản phẩm, W/K/lm, cos/pha
    (bảng lỗi nhận giọng trong `quy-trinh.md`); từ không chắc → hỏi người dùng. Gợi ý phụ đề: `scripts/words_to_caps.py`.
-3. **Nghe lại, bỏ LẶP / VẤP (tự làm, không đợi người dùng nhắc)**: `<python> scripts/stutter.py <dự án>/work/words.json --out <dự án>/work/cuts.json`
-   → tìm từ/cụm nói lặp liền nhau (**giữ lần cuối**, cắt các lần trước), tiếng đệm "ờ/à/ừm" (whisper hay ghi "ờ…" thành "ở,"), nói cụt rồi nói lại,
+3. **Nghe lại, bỏ LẶP / VẤP (tự làm, không đợi người dùng nhắc)**:
+   `<python> scripts/stutter.py <dự án>/work/words.json --audio <file nguồn> --out <dự án>/work/cuts.json` — **bắt buộc `--audio`** (nghe sâu).
+   Lý do (lỗi Corolla Cross v2, 18/11/2026): whisper nhận cả clip **gộp các lần nói lại thành một** và kéo dài 1 từ ~2 s để che
+   ("theo em thì mức độ ưu, theo em thì…" chỉ còn "theo em thì…") → đọc transcript thường KHÔNG thấy lặp. Nghe sâu = dò từ bị kéo dài / khoảng hở
+   còn tiếng nói, nhận giọng riêng đoạn đó, lộ ra lời bị giấu.
+   → tìm từ/cụm nói lặp liền nhau và **nói lại** (cụm lặp sau vài từ nói hỏng) (**giữ lần cuối**, cắt các lần trước), tiếng đệm "ờ/à/ừm" (whisper hay ghi "ờ…" thành "ở,"), nói cụt rồi nói lại,
    ngừng > 0,6 s. **Nghe lại từng chỗ** (cắt `-ss/-t` rồi nhận giọng lại) trước khi chốt; lặp có chủ ý ("rất rất sáng") thì giữ.
    Chỗ chốt cắt → đưa vào `cuts` của đoạn; cảnh người nói đặt `sync=True` để hình nhảy theo tiếng.
    **Mỗi mối cắt trong cảnh người nói phải TRÁM** bằng `covers` (insert/animation khớp lời: ảnh hộp, sản phẩm, b-roll, thẻ thông số; ảnh tĩnh tự zoom chậm),
@@ -71,10 +75,15 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
      (`-i` phải trước `--`; ~1–2 phút/ảnh). Chỉ cho minh hoạ/bối cảnh — **không** tạo hộp, thông số, vệt sáng, ảnh trước/sau, xe khách.
      Soát ảnh (chữ sai dấu, tay, logo méo), ghi prompt vào `brief.md`, báo ảnh nào là AI.
    Mọi mốc cắt, chữ, vị trí, âm lượng nằm trong script; sửa = sửa script rồi chạy lại.
-5. **Nháp**: `cd "$WS" && <python> projects/X/work/build.py` (encode GPU, nhanh). Soát bố cục tự động phải qua; contact sheet bản nháp → **xem ảnh**,
-   sửa chữ đè mặt/sản phẩm/thông số. Bước dự kiến > 5 phút → báo trước.
-6. **Bản giao**: `FINAL=1 VER=n` (Mac/Git Bash: `FINAL=1 VER=1 <python> …`), mỗi lần sửa tăng `VER`, không ghi đè bản cũ.
-7. **Tự kiểm**: `<python> scripts/qc.py <bản giao>` (~-14 LUFS, TP ≤ -1,5, hình = tiếng), contact sheet bản cuối, đếm khung đủ; **nhận giọng lại bản giao** để chắc không còn lặp/vấp và không mất chữ.
+5. **Nháp để rà = 360p** (anh chốt 18/11/2026): `cd "$WS" && <python> projects/X/work/build.py` → `output/<NAME>_<ratio>_v<n>_nhap360p.mp4`
+   (vẽ thẳng 640x360, rất nhanh). Toạ độ/cỡ chữ trong SEGS luôn viết theo khung thiết kế 1920x1080 (9:16: 1080x1920), build tự quy đổi.
+   Soát tự động phải qua: tràn khung, đè phụ đề, **chữ đè đầu/vai người** (YuNet, `FACE_CHECK`, chặn render và gợi ý dời sang phía đối diện người),
+   mối cắt chưa trám, chữ không đủ thời gian đứng. Contact sheet bản nháp → **xem ảnh**. Bước dự kiến > 5 phút → báo trước.
+6. **Bản giao (clip chính) = 4K**: `FINAL=1 VER=n` (Mac/Git Bash: `FINAL=1 VER=1 <python> …`) → 3840x2160 (9:16: 2160x3840), chữ vẽ thẳng ở 4K,
+   HEVC phần cứng 45 Mbit (máy không GPU: libx264). Nguồn dưới 4K → build báo "phóng lên 4K". Ép cỡ khác: `RES=1080`. Mỗi lần sửa tăng `VER`.
+7. **Tự kiểm (bắt buộc trước khi báo xong)**: `<python> scripts/qc.py <bản giao>` (~-14 LUFS, TP ≤ -1,5, hình = tiếng), contact sheet bản cuối
+   (soát mắt chữ không đè mặt/vai người), đếm khung đủ, và **`<python> scripts/stutter.py --check <bản giao>`** phải in "ĐẠT — không còn lặp/nói lại";
+   CHƯA ĐẠT → thêm chỗ đó vào `cuts` (đổi mốc bản giao về giây nguồn), xuất `VER` mới, soát lại. Không giao bản còn lặp.
 
 ## Bước 3 — Giao
 - Mở thư mục chọn sẵn file: Mac `open -R <file>`, Windows `explorer.exe /select,"<file theo dạng C:\...>"`.
@@ -96,7 +105,8 @@ Trần CPU 50% máy, render từng đoạn tuần tự (`e365.start_cpu_watch`).
 | `scripts/build_template.py` | Mẫu build 1 dự án: SEGS → render tuần tự có cache → âm thanh → bản giao |
 | `scripts/transcribe.py`, `words_to_caps.py` | Nhận giọng tiếng Việt từng từ (Mac mlx-whisper / Windows faster-whisper CUDA), gợi ý phụ đề |
 | `scripts/denoise.py` | Tự cài DeepFilterNet 0.5.6 (kiểm SHA-256) + lọc tạp âm giọng (siêu mạnh / `--soft`) |
-| `scripts/stutter.py` | Dò chỗ nói lặp / vấp / ngừng dài từ transcript → `cuts.json` |
+| `scripts/stutter.py` | Nghe sâu (lộ lời whisper giấu) + dò lặp / nói lại / vấp / ngừng dài → `cuts.json`; `--check <bản giao>` soát cuối |
+| `scripts/data/face_detection_yunet_2023mar.onnx` | Nhận diện mặt (OpenCV YuNet, MIT) cho soát chữ đè đầu/vai |
 | `scripts/music.py` | Tự tải bộ nhạc Mixkit có giấy phép + chọn bài theo mood |
 | `scripts/qc.py`, `contact_sheet.py` | Soát thông số/LUFS/khoảng lặng, contact sheet |
 | `scripts/new_project.py`, `cpu_watch.py` | Tạo khung dự án, canh trần CPU |

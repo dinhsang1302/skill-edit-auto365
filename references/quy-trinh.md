@@ -59,7 +59,7 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
      Ghi bảng sửa của dự án vào `projects/X/work/fix.tsv` (mỗi dòng `sai<TAB>đúng`) để `words_to_caps.py --fix` áp tự động.
    - Câu nghi ngờ → nhận lại riêng đoạn đó (cắt `-ss/-t`) để so; hai lần ra giống nhau thì để theo lời nói thật (vd. "xem đồng bộ luôn nha").
    - Nhiều take cùng một câu → chọn **1 take**, không ghép hai nguồn (đã lỗi lặp từ khi ghép 2 take).
-   - **Lặp từ / vấp (chốt 18/11/2026)**: chạy `scripts/stutter.py` → nghe lại từng chỗ → nói lặp thì **giữ 1 lần (lần cuối)**, bỏ "ờ/à/ừm", nói cụt rồi nói lại;
+   - **Lặp từ / vấp (chốt 18/11/2026)**: chạy `scripts/stutter.py … --audio <nguồn>` (nghe sâu — whisper gộp các lần nói lại, đọc transcript thường không thấy) → nghe lại từng chỗ → nói lặp thì **giữ 1 lần (lần cuối)**, bỏ "ờ/à/ừm", nói cụt rồi nói lại;
      mỗi mối cắt trong cảnh người nói **trám bằng animation/insert** 1,5–3 s (SEGS `cuts` + `covers`, shot `sync=True`).
    - Gợi ý dòng phụ đề: `scripts/words_to_caps.py` (cắt ở khoảng ngừng > 0,3 s, dấu câu, ≤ 42 ký tự cho 9:16, ~46–48 cho 16:9);
      không tách từ ghép (nâng|cấp, ánh|sáng, đèn|gầm, nhiệt|màu, căn|chỉnh, F10|Turbo…). Đọc lại, sửa, rồi dán vào `caps` của SEGS.
@@ -92,7 +92,8 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
    **Chuyển cảnh (anh chốt 17/10/2026):** hai cảnh **khác khung hình → cắt thẳng**, không hiệu ứng, không tiếng swish;
    hai cảnh **cùng khung nối tiếp** (cùng nguồn, cỡ khung gần nhau) → hoà tan nhẹ ~6 frame cho đỡ khựng. **Hạn chế pop up**: chỉ giữ chữ thật sự cần
    (số liệu, tiêu đề chương, tên sản phẩm, CTA); còn lại để phụ đề.
-9. **Tự kiểm trước khi giao**: contact sheet bản cuối (mỗi cảnh ≥ 1 frame), không chữ đè sản phẩm/thông số/mặt người, không còn frame lỗi AI,
+9. **Tự kiểm trước khi giao**: contact sheet bản cuối (mỗi cảnh ≥ 1 frame), không chữ đè sản phẩm/thông số/**đầu, vai người** (build tự soát YuNet), không còn frame lỗi AI,
+   `scripts/stutter.py --check <bản giao>` ra ĐẠT (không còn lặp/nói lại). Nháp rà xuất 360p, bản giao 4K (chốt 18/11/2026).
    `<python> scripts/qc.py` (LUFS, TP, thời lượng tiếng = hình), soát bố cục tự động đã qua (`check_layout`). Sửa màu → so cùng khung hình bản trước/bản mới.
 
 ## 9. Luật nội dung (không thương lượng)

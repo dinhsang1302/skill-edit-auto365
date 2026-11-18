@@ -93,7 +93,8 @@ Tự chạy tay (không cần Claude):
 # Mac
 .venv/bin/python projects/X/work/build.py               # nháp
 .venv/bin/python projects/X/work/build.py 03            # chỉ đoạn 03
-FINAL=1 VER=2 .venv/bin/python projects/X/work/build.py # bản giao v2
+FINAL=1 VER=2 .venv/bin/python projects/X/work/build.py # bản giao 4K v2 (nháp ở trên ra 360p để rà)
+.venv/bin/python scripts/stutter.py --check projects/X/output/<file>.mp4   # soát còn lặp/nói lại không
 .venv/bin/python scripts/qc.py projects/X/output/<file>.mp4
 ```
 ```powershell
@@ -106,7 +107,7 @@ $env:FINAL=1; $env:VER=2; .venv\Scripts\python projects\X\work\build.py; Remove-
 ## 4. Phần cứng & tốc độ
 - `e365` tự chọn: Mac = videotoolbox + `scale_vt`; Windows NVIDIA = NVDEC + `scale_cuda`, nháp `h264_nvenc`; không GPU = CPU. Ép bằng `E365_HW=vt|cuda|none`.
 - Trần CPU = 50% số luồng máy (`cpu_watch.py` tự tạm dừng ffmpeg khi vượt) để máy vẫn làm việc khác được.
-- Clip ~75 s: Mac M-series nháp ~1 phút. Bản giao libx264 vài phút.
+- Nháp rà xuất **360p** (rất nhanh, file nhẹ); bản giao (clip chính) xuất **4K** HEVC phần cứng — clip ~75 s mất vài phút. Ép cỡ khác: `RES=1080`.
 - Nhận giọng lần đầu tải model ~1,6 GB. Windows có GPU: faster-whisper CUDA; lỗi CUDA thì tự chạy CPU (chậm, có báo).
 - Clip Sony XAVC (4K 4:2:2 hoặc rơi frame khi giải GPU) được tự chuyển giải mã CPU 1 luồng — chậm hơn, bình thường.
 
