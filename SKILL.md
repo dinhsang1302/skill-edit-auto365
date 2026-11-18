@@ -53,7 +53,8 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    ngừng > 0,6 s. **Nghe lại từng chỗ** (cắt `-ss/-t` rồi nhận giọng lại) trước khi chốt; lặp có chủ ý ("rất rất sáng") thì giữ.
    Chỗ chốt cắt → đưa vào `cuts` của đoạn; cảnh người nói đặt `sync=True` để hình nhảy theo tiếng.
    **Mỗi mối cắt trong cảnh người nói phải TRÁM** bằng `covers` (insert/animation khớp lời: ảnh hộp, sản phẩm, b-roll, thẻ thông số; ảnh tĩnh tự zoom chậm),
-   ~2 s quanh mối cắt (`COVER`, 1,5–3 s). Build **từ chối render** nếu còn mối cắt chưa trám. Không có insert hợp → gọi Codex tạo minh hoạ (mục dưới).
+   ~2 s quanh mối cắt (`COVER`, 1,5–3 s). Không khai báo đủ `covers` → build **tự lấy tư liệu có sẵn** (ảnh/clip trong `insert/`, xoay vòng); dự án không có insert nào → **punch-in**
+   (đổi cỡ khung người nói ngay mối cắt, che cú nhảy hình). Ưu tiên chọn tay insert khớp lời; Codex chỉ là tuỳ chọn.
 4. **Viết `work/build.py`** từ `scripts/build_template.py` (new_project đã chép sẵn): `SEGS` (keep / shots / caps / kin), `NAME`, `W,H,FPS`,
    `THEME="dark"`. Học cách dựng từ `examples/`.
    - **Giọng tự lọc tạp âm** (`DENOISE="strong"` mặc định = DeepFilterNet siêu mạnh + vá lỗ + gate, cache trong `work/seg/denoise`);
@@ -63,10 +64,12 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
      duck theo giọng. Báo tên bài + giấy phép khi giao.
    - **Chữ pop up**: hiện mượt (mask 0,55 s), **đứng yên ≥ 1,2 s** (`Word.HOLD_MIN`), ra mượt 0,35 s; không lên/xuống đột ngột.
      Build báo lỗi nếu chữ không đủ thời gian đứng trong đoạn → cho hiện sớm hơn hoặc gộp dòng, không rút thời gian đứng.
-   - **Hình minh hoạ thiếu → gọi Codex vẽ** (nếu máy có `codex`, đã đăng nhập): trong `<dự án>/insert/ai/` chạy
+   - **Hình minh hoạ: dùng tư liệu có sẵn trước** — ảnh/clip trong `insert/`, b-roll, frame đẹp trích từ chính clip (ảnh hộp, sản phẩm, cận chi tiết).
+     **Codex là tuỳ chọn**: kiểm `codex --version` (hoặc `where codex` trên Windows); **máy không có Codex CLI hoặc chưa đăng nhập → bỏ qua, không cài, không hỏi,
+     không coi là lỗi**, dựng tiếp bằng tư liệu có sẵn. Máy có Codex mà thật sự thiếu hình minh hoạ thì trong `<dự án>/insert/ai/` chạy
      `codex exec --skip-git-repo-check -s workspace-write [-i ref.png] -- "<prompt tiếng Anh>, 16:9 (hoặc 9:16), no text. Save as <ten>.png in the current directory." < /dev/null`
      (`-i` phải trước `--`; ~1–2 phút/ảnh). Chỉ cho minh hoạ/bối cảnh — **không** tạo hộp, thông số, vệt sáng, ảnh trước/sau, xe khách.
-     Soát ảnh (chữ sai dấu, tay, logo méo), ghi prompt vào `brief.md`, báo ảnh nào là AI. Không có Codex → dùng insert thật, báo người dùng.
+     Soát ảnh (chữ sai dấu, tay, logo méo), ghi prompt vào `brief.md`, báo ảnh nào là AI.
    Mọi mốc cắt, chữ, vị trí, âm lượng nằm trong script; sửa = sửa script rồi chạy lại.
 5. **Nháp**: `cd "$WS" && <python> projects/X/work/build.py` (encode GPU, nhanh). Soát bố cục tự động phải qua; contact sheet bản nháp → **xem ảnh**,
    sửa chữ đè mặt/sản phẩm/thông số. Bước dự kiến > 5 phút → báo trước.

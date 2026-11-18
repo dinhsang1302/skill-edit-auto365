@@ -24,7 +24,7 @@ Các bước dưới đây là để tự làm tay hoặc khi cần xử lý l�
 | Lọc tạp âm giọng | DeepFilterNet 0.5.6 (MIT/Apache) — setup tự tải `bin/deep-filter`, kiểm SHA-256 | như Mac (`bin\deep-filter.exe`) |
 | Nhạc nền | Setup tự tải 4 bài Mixkit (Mixkit Free License: online/quảng cáo online được, không TV/radio); muốn nhạc riêng thì bỏ vào `assets/music` | như Mac |
 | SFX (tuỳ chọn) | Tự bỏ file có giấy phép vào `assets/sfx` | như Mac |
-| Codex CLI (tuỳ chọn) | Để skill tự vẽ hình minh hoạ khi thiếu insert; không có thì bỏ qua | như Mac |
+| Codex CLI (tuỳ chọn, **không bắt buộc**) | Có thì skill gọi vẽ thêm hình minh hoạ; không có thì skill tự dùng ảnh/clip có sẵn trong `insert/`, setup không cài | như Mac |
 
 Tất cả ở cột trên `setup` tự cài, trừ Homebrew/winget và tài khoản Claude.
 
@@ -83,7 +83,7 @@ Dưới đây `<python>` = `.venv/bin/python` (Mac) hoặc `.venv\Scripts\python
    > Kịch bản: (dán kịch bản nếu có — chữ trên màn hình sẽ bám nguyên văn).
 
    Claude Code sẽ: soát nguồn (`qc.py`, contact sheet, lỗi video AI) → nhận giọng (`transcribe.py`), hỏi lại từ không chắc
-   → lọc tạp âm giọng → dò và bỏ chỗ nói lặp/vấp (`stutter.py`), trám mối cắt bằng ảnh/b-roll (thiếu thì gọi Codex vẽ minh hoạ) → tự chọn nhạc
+   → lọc tạp âm giọng → dò và bỏ chỗ nói lặp/vấp (`stutter.py`), trám mối cắt bằng ảnh/b-roll có sẵn trong `insert/` (máy có Codex thì vẽ thêm minh hoạ được) → tự chọn nhạc
    → viết `work/build.py` từ mẫu → render **nháp** → tự soát bố cục + contact sheet → báo để xem.
 5. Góp ý bằng lời ("chữ hiện chậm hơn", "cảnh 3 đổi ảnh beam khác", "bỏ end card") → Claude sửa script, render lại đúng đoạn đó.
 6. Gõ "xuất bản giao" → file ở `projects/X/output/`, kèm báo cáo mạch dựng, thông số đã dùng + nguồn.

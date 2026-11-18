@@ -67,7 +67,8 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
    Không reveal hết ở frame đầu. Hero product phải rõ. Mở đầu clip phải thấy người dẫn.
 4. **Insert khớp lời**: câu nói về thông số → zoom vào chỗ thông số in trên hộp/tài liệu (bằng chứng, không chỉ là chữ), kèm chip nguồn.
    Câu nói về vệt sáng → ảnh/clip beam thật. So sánh trước/sau → ghép đôi cùng khung, cân phơi sáng theo vùng không bị đèn chiếu.
-   **Thiếu insert** → được tự gọi Codex CLI tạo ảnh (anh Việt cho phép 17/10/2026, không cần hỏi từng lần; cách gọi ở mục 5 "Tạo ảnh bằng Codex").
+   **Thiếu insert** → dùng tư liệu có sẵn trước (insert/, b-roll, frame trích từ clip). Máy có Codex CLI thì được gọi Codex tạo ảnh minh hoạ (không cần hỏi từng lần);
+   **máy không có Codex → bỏ qua, không cài, không báo lỗi**, dựng bằng tư liệu có sẵn.
    Chỉ dùng cho ảnh **minh hoạ/bối cảnh** (đồ hoạ khái niệm, nền, cảnh tình huống); không thay bằng chứng (mục 9).
 5. **Vùng chữ (anh chốt 17/10/2026, mọi clip 9:16):** chữ (tiêu đề, pill, số, phụ đề, chip nguồn) **không đè mặt, không đè logo**
    (biển "3M Pro Shop", biển số xe, logo áo…), **không đè sản phẩm**, và nằm trong **vùng an toàn TikTok In-Feed Ads**:

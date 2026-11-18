@@ -5,7 +5,7 @@ Gói style dựng clip mặc định của xưởng **Edit365** cho clip sản p
 phụ đề PNG, âm thanh chuẩn -14 LUFS.
 
 Tự động (v1.3): **lọc tạp âm giọng** (DeepFilterNet), **bỏ chỗ nói lặp/vấp** và trám mối cắt bằng ảnh/b-roll, **tự chọn nhạc nền** có giấy phép
-(Mixkit), chữ pop up hiện mượt và **đứng ≥ 1,2 s** mới xuống, thiếu hình minh hoạ thì **gọi Codex vẽ** (nếu máy có Codex CLI).
+(Mixkit), chữ pop up hiện mượt và **đứng ≥ 1,2 s** mới xuống, trám/minh hoạ bằng **tư liệu có sẵn** trong dự án; máy có Codex CLI thì có thể gọi Codex vẽ thêm (không có cũng dựng bình thường).
 
 ## Cài nhanh
 **Mac (Apple Silicon):**

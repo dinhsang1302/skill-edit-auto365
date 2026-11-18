@@ -55,6 +55,7 @@ print("== GPU dựng: e365.HW =", e365.HW, "(vt = Mac, cuda = NVIDIA, none = CPU
 print("== Lọc tạp âm giọng (DeepFilterNet)")
 import denoise
 (ok if denoise.binary() else bad)("deep-filter " + (denoise.binary() or "→ <python> scripts/denoise.py --install"))
+(ok if shutil.which("codex") else opt)("codex CLI " + ("có — vẽ được hình minh hoạ" if shutil.which("codex") else "không có → bỏ qua, dùng tư liệu có sẵn (không bắt buộc)"))
 print("== Assets / script")
 mus = [p for p in (ROOT / "assets/music").rglob("*") if p.suffix.lower() in (".mp3", ".wav")]
 (ok if mus else bad)(f"assets/music ({len(mus)} file)" + ("" if mus else " → <python> scripts/music.py --install"))

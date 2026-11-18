@@ -20,7 +20,7 @@ Cách dùng:
 Tham số môi trường: FINAL=1 (bản giao), VER=<n> (số phiên bản, mỗi lần sửa tăng 1, không ghi đè bản cũ),
   SKIP_CHECK=1 (bỏ qua soát bố cục — chỉ khi đã soát mắt).
 """
-import os, sys, json, hashlib, numpy as np
+import os, sys, json, hashlib, zlib, numpy as np
 from pathlib import Path
 from PIL import Image
 
@@ -40,6 +40,7 @@ MUSIC = "auto"                                              # "auto" tự chọn
 MUSIC_GAIN = 0.22
 SFX_WHOOSH = None                                           # vd. "whoosh/Transitions SFX_13.wav" (tính từ assets/sfx) — chỉ ở chuyển cảnh lớn; bảng chuẩn: assets/sfx/QUY_TAC_SU_DUNG.md
 DENOISE = "strong"                                          # lọc tạp âm giọng: "strong" siêu mạnh · "soft" giọng nhỏ/xa · None tắt
+AUTO_COVER = True                                           # thiếu covers → tự lấy ảnh/clip có sẵn trong insert/; không có gì → punch-in (đổi cỡ khung)
 COVER = 2.0                                                 # giây trám quanh mỗi mối cắt lặp/vấp (≥ 1,5 s, ≤ 3 s)
 VER = int(os.environ.get("VER", "1")); FINAL = os.environ.get("FINAL") == "1"
 OUT = PRJ / "work/seg"; OUT.mkdir(parents=True, exist_ok=True)
@@ -53,7 +54,8 @@ def K(y, *words, x=None, align="center", end=None):        # 1 dòng chữ độ
 # cuts: [(a,b)] giây nguồn bỏ đi vì nói LẶP (giữ lần cuối) / VẤP — lấy từ scripts/stutter.py SAU KHI nghe lại từng chỗ
 # shots: sh(..., sync=True) = cảnh người nói khớp tiếng: tự nhảy theo từng khúc keep (không lệch môi sau khi cắt)
 # covers: [(file ảnh/clip, giây nguồn, z)] — mỗi mối cắt trong đoạn lấy 1 cái theo thứ tự, phủ COVER giây quanh mối cắt.
-#   Nên dùng insert khớp lời (ảnh sản phẩm, b-roll, thẻ thông số); thiếu hình minh hoạ → gọi Codex tạo (insert/ai/), không làm bằng chứng.
+#   Nên dùng insert khớp lời (ảnh sản phẩm, b-roll, thẻ thông số). Không khai báo đủ → AUTO_COVER tự lấy tư liệu có sẵn trong insert/.
+#   Codex vẽ minh hoạ là TUỲ CHỌN (chỉ khi máy có Codex CLI); không có Codex vẫn dựng bình thường bằng tư liệu có sẵn.
 # caps: [(giây nguồn, "câu phụ đề", "keyword hoặc None")] — lấy từ transcript ĐÃ HIỆU ĐÍNH (scripts/words_to_caps.py)
 SEGS = [
     dict(id="01", a="input/demo.mp4", keep=[(0.0, 3.4)], shots=[sh(0, "input/demo.mp4", 0.0, z=(1.0, 1.06), c=(.5, .45))],
@@ -88,6 +90,11 @@ def caps_of(s):
     return [(o, c[i + 1][0] if i + 1 < len(c) else L, E.cap_img(txt, CAP["size"], CAP["font"], W=W, keyword=kw))
             for i, (o, txt, kw) in enumerate(c)]
 
+def auto_covers():
+    """Tư liệu có sẵn để tự trám: ảnh/clip trong insert/ của dự án (kể cả insert/ai nếu đã có). Không cần Codex."""
+    exts = E.IMG_EXT + (".mp4", ".mov", ".m4v")
+    return sorted(p for p in (PRJ / "insert").rglob("*") if p.suffix.lower() in exts and not p.name.startswith("."))
+
 def shots_of(s):
     """Danh sách shot thật để render: tách shot sync theo từng khúc keep, rồi chèn insert trám quanh mỗi mối cắt."""
     L = seg_len(s); keep = s["keep"]; res = []; sh0 = s["shots"]
@@ -99,9 +106,17 @@ def shots_of(s):
             d = b if a is None else b - a
             if a is not None and o + d > o0 and o < o1: res.append((max(o, o0), src, a + max(0, o0 - o), p))
             o += d
-    cov = list(s.get("covers", []))
+    cov = list(s.get("covers", [])); pool = auto_covers(); n = 0
     for j in E.joins(keep):
-        if not cov: break
+        if not cov and AUTO_COVER and pool:                 # hết covers khai báo → tự lấy tư liệu có sẵn trong insert/ (xoay vòng)
+            f = pool[(zlib.crc32(s["id"].encode()) + n) % len(pool)]; n += 1; cov.append((str(f.relative_to(PRJ)), 0, (1.0, 1.08)))
+        if not cov:
+            if AUTO_COVER:                                  # không có tư liệu nào → punch-in: đổi cỡ khung ngay mối cắt để che cú nhảy hình
+                k = [i for i, x in enumerate(res) if x[0] <= j + 1e-6][-1]; o0, src, ss, p = res[k]
+                if p.get("sync") and abs(o0 - j) < 1e-3:
+                    z0 = p.get("z", (1, 1))[0]; zz = 1.18 if z0 < 1.1 else 1.0
+                    res[k] = (o0, src, ss, dict(p, z=(zz, zz), punch=True))
+            continue
         f, css, z = cov.pop(0); a, b = max(0, j - COVER / 2), min(L, j + COVER / 2)
         back = [x for x in res if x[0] <= b + 1e-6][-1]   # shot đang chạy lúc hết trám → tiếp tục đúng nguồn
         res = [x for x in res if not (a <= x[0] < b)] + [(a, f, css, dict(z=z, cover=True))]
@@ -123,7 +138,7 @@ def check(s):
     L = seg_len(s); sh = shots_of(s)                        # mối cắt lặp/vấp trong cảnh người nói phải được trám
     for j in E.joins(s["keep"]):
         cur = [x for x in sh if x[0] <= j + 1e-6][-1]
-        if cur[3].get("sync"): errs.append(f"đoạn {s['id']}: mối cắt {j:.2f}s chưa trám → thêm 1 mục vào covers")
+        if cur[3].get("sync") and not cur[3].get("punch"): errs.append(f"đoạn {s['id']}: mối cắt {j:.2f}s chưa trám → thêm 1 mục vào covers")
     for pl, a, b in kin_placed(s):                          # chữ phải đứng đủ HOLD_MIN và xuống hết trước khi hết đoạn
         if b > L + 0.01: errs.append(f"đoạn {s['id']}: chữ '{pl[0][0].text}…' cần tới {b:.2f}s (đứng ≥ {E.Word.HOLD_MIN}s) > đoạn {L:.2f}s → hiện sớm hơn hoặc gộp")
     return errs
@@ -151,7 +166,7 @@ def render_seg(s, path):
 
 def seg_hash(s):
     src = Path(__file__).read_text() + Path(E.__file__).read_text()
-    return hashlib.md5((json.dumps(s, sort_keys=True, ensure_ascii=False, default=str) + src + str(FINAL)).encode()).hexdigest()[:10]
+    return hashlib.md5((json.dumps(s, sort_keys=True, ensure_ascii=False, default=str) + src + str(FINAL) + str(auto_covers())).encode()).hexdigest()[:10]
 
 def job(s):
     p = OUT / f"seg_{s['id']}_{seg_hash(s)}.mp4"
