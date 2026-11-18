@@ -41,6 +41,10 @@ if (-not (Test-Path ".venv")) { py -3.12 -m venv .venv }
 if ($LASTEXITCODE -ne 0) { Write-Host "pip loi - xem thong bao o tren"; exit 1 }
 [Environment]::SetEnvironmentVariable("PYTHONUTF8", "1", "User"); $env:PYTHONUTF8 = "1"
 
+Write-Host "== Loc tap am giong: DeepFilterNet 0.5.6 -> bin\deep-filter.exe"
+.\.venv\Scripts\python scripts\denoise.py --install
+Write-Host "== Nhac nen co giay phep (Mixkit) -> assets\music\_downloaded"
+.\.venv\Scripts\python scripts\music.py --install
 Write-Host "== 6/6 Kiem tra"
 .\.venv\Scripts\python scripts\check_env.py
 Write-Host ""

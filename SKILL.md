@@ -48,13 +48,30 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    tìm lỗi video AI (tay, chữ, logo méo) → cắt hình giữ tiếng, phủ insert. Ghi danh mục tư liệu vào `brief.md`.
 2. **Transcript**: `<python> scripts/transcribe.py <file> <dự án>/work/words.json`, hiệu đính tay tên sản phẩm, W/K/lm, cos/pha
    (bảng lỗi nhận giọng trong `quy-trinh.md`); từ không chắc → hỏi người dùng. Gợi ý phụ đề: `scripts/words_to_caps.py`.
-3. **Viết `work/build.py`** từ `scripts/build_template.py` (new_project đã chép sẵn): `SEGS` (keep / shots / caps / kin), `NAME`, `W,H,FPS`,
-   `THEME="dark"`, `MUSIC` (chỉ file có giấy phép trong `assets/music`; không có thì không nhạc và nói rõ). Học cách dựng từ `examples/`.
+3. **Nghe lại, bỏ LẶP / VẤP (tự làm, không đợi người dùng nhắc)**: `<python> scripts/stutter.py <dự án>/work/words.json --out <dự án>/work/cuts.json`
+   → tìm từ/cụm nói lặp liền nhau (**giữ lần cuối**, cắt các lần trước), tiếng đệm "ờ/à/ừm" (whisper hay ghi "ờ…" thành "ở,"), nói cụt rồi nói lại,
+   ngừng > 0,6 s. **Nghe lại từng chỗ** (cắt `-ss/-t` rồi nhận giọng lại) trước khi chốt; lặp có chủ ý ("rất rất sáng") thì giữ.
+   Chỗ chốt cắt → đưa vào `cuts` của đoạn; cảnh người nói đặt `sync=True` để hình nhảy theo tiếng.
+   **Mỗi mối cắt trong cảnh người nói phải TRÁM** bằng `covers` (insert/animation khớp lời: ảnh hộp, sản phẩm, b-roll, thẻ thông số; ảnh tĩnh tự zoom chậm),
+   ~2 s quanh mối cắt (`COVER`, 1,5–3 s). Build **từ chối render** nếu còn mối cắt chưa trám. Không có insert hợp → gọi Codex tạo minh hoạ (mục dưới).
+4. **Viết `work/build.py`** từ `scripts/build_template.py` (new_project đã chép sẵn): `SEGS` (keep / shots / caps / kin), `NAME`, `W,H,FPS`,
+   `THEME="dark"`. Học cách dựng từ `examples/`.
+   - **Giọng tự lọc tạp âm** (`DENOISE="strong"` mặc định = DeepFilterNet siêu mạnh + vá lỗ + gate, cache trong `work/seg/denoise`);
+     giọng thu nhỏ/xa → `"soft"`. Lọc 1 file lẻ: `<python> scripts/denoise.py <file>` → `<tên file>_denoise.wav`. Không chạy 2 lượt.
+   - **Nhạc tự chọn** (`MUSIC="auto"`): nhạc người dùng bỏ vào `assets/music` thắng; không có thì bộ Mixkit có giấy phép (setup đã tải),
+     chọn theo mood `"auto:tech|drive|groove|warm"` (công nghệ/thông số · chạy xe đêm · thi công cận · khách hàng/kết vui), nối vòng có hoà âm,
+     duck theo giọng. Báo tên bài + giấy phép khi giao.
+   - **Chữ pop up**: hiện mượt (mask 0,55 s), **đứng yên ≥ 1,2 s** (`Word.HOLD_MIN`), ra mượt 0,35 s; không lên/xuống đột ngột.
+     Build báo lỗi nếu chữ không đủ thời gian đứng trong đoạn → cho hiện sớm hơn hoặc gộp dòng, không rút thời gian đứng.
+   - **Hình minh hoạ thiếu → gọi Codex vẽ** (nếu máy có `codex`, đã đăng nhập): trong `<dự án>/insert/ai/` chạy
+     `codex exec --skip-git-repo-check -s workspace-write [-i ref.png] -- "<prompt tiếng Anh>, 16:9 (hoặc 9:16), no text. Save as <ten>.png in the current directory." < /dev/null`
+     (`-i` phải trước `--`; ~1–2 phút/ảnh). Chỉ cho minh hoạ/bối cảnh — **không** tạo hộp, thông số, vệt sáng, ảnh trước/sau, xe khách.
+     Soát ảnh (chữ sai dấu, tay, logo méo), ghi prompt vào `brief.md`, báo ảnh nào là AI. Không có Codex → dùng insert thật, báo người dùng.
    Mọi mốc cắt, chữ, vị trí, âm lượng nằm trong script; sửa = sửa script rồi chạy lại.
-4. **Nháp**: `cd "$WS" && <python> projects/X/work/build.py` (encode GPU, nhanh). Soát bố cục tự động phải qua; contact sheet bản nháp → **xem ảnh**,
+5. **Nháp**: `cd "$WS" && <python> projects/X/work/build.py` (encode GPU, nhanh). Soát bố cục tự động phải qua; contact sheet bản nháp → **xem ảnh**,
    sửa chữ đè mặt/sản phẩm/thông số. Bước dự kiến > 5 phút → báo trước.
-5. **Bản giao**: `FINAL=1 VER=n` (Mac/Git Bash: `FINAL=1 VER=1 <python> …`), mỗi lần sửa tăng `VER`, không ghi đè bản cũ.
-6. **Tự kiểm**: `<python> scripts/qc.py <bản giao>` (~-14 LUFS, TP ≤ -1,5, hình = tiếng), contact sheet bản cuối, đếm khung đủ.
+6. **Bản giao**: `FINAL=1 VER=n` (Mac/Git Bash: `FINAL=1 VER=1 <python> …`), mỗi lần sửa tăng `VER`, không ghi đè bản cũ.
+7. **Tự kiểm**: `<python> scripts/qc.py <bản giao>` (~-14 LUFS, TP ≤ -1,5, hình = tiếng), contact sheet bản cuối, đếm khung đủ; **nhận giọng lại bản giao** để chắc không còn lặp/vấp và không mất chữ.
 
 ## Bước 3 — Giao
 - Mở thư mục chọn sẵn file: Mac `open -R <file>`, Windows `explorer.exe /select,"<file theo dạng C:\...>"`.
@@ -75,6 +92,9 @@ Trần CPU 50% máy, render từng đoạn tuần tự (`e365.start_cpu_watch`).
 | `scripts/e365.py` | Thư viện: `VReader` (tự chọn videotoolbox / NVDEC / CPU), `Encoder`, `Word`/`layout_line` (chữ động, chống tràn), `cap_img` (phụ đề), `check_layout`, `rounded`/`with_shadow`/`cta`/`soft_bg`, `cut_voice`/`loudness`/`final_mix`/`mux`, `STYLES["dark"]` |
 | `scripts/build_template.py` | Mẫu build 1 dự án: SEGS → render tuần tự có cache → âm thanh → bản giao |
 | `scripts/transcribe.py`, `words_to_caps.py` | Nhận giọng tiếng Việt từng từ (Mac mlx-whisper / Windows faster-whisper CUDA), gợi ý phụ đề |
+| `scripts/denoise.py` | Tự cài DeepFilterNet 0.5.6 (kiểm SHA-256) + lọc tạp âm giọng (siêu mạnh / `--soft`) |
+| `scripts/stutter.py` | Dò chỗ nói lặp / vấp / ngừng dài từ transcript → `cuts.json` |
+| `scripts/music.py` | Tự tải bộ nhạc Mixkit có giấy phép + chọn bài theo mood |
 | `scripts/qc.py`, `contact_sheet.py` | Soát thông số/LUFS/khoảng lặng, contact sheet |
 | `scripts/new_project.py`, `cpu_watch.py` | Tạo khung dự án, canh trần CPU |
 | `examples/f10_10s_16x9_nen_toi.py` | Bản 10 s 16:9 nền tối — mẫu chữ động gọn nhất |

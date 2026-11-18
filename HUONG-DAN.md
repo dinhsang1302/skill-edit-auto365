@@ -21,7 +21,10 @@ Các bước dưới đây là để tự làm tay hoặc khi cần xử lý l�
 | ffmpeg | Homebrew | bản **Gyan full** (có NVDEC/NVENC, `scale_cuda`) — setup tự cài |
 | Python 3.12 + thư viện | numpy, scipy, pillow, psutil, **mlx-whisper** | numpy, scipy, pillow, psutil, **faster-whisper** + cuBLAS/cuDNN |
 | Font | Anton, Playfair Display, Inter, Be Vietnam Pro — có sẵn trong `assets/fonts/` (SIL OFL), không phải cài | như Mac |
-| Nhạc / SFX (tuỳ chọn) | Tự bỏ file có giấy phép vào `assets/music`, `assets/sfx` (vd. Mixkit). Gói không kèm nhạc | như Mac |
+| Lọc tạp âm giọng | DeepFilterNet 0.5.6 (MIT/Apache) — setup tự tải `bin/deep-filter`, kiểm SHA-256 | như Mac (`bin\deep-filter.exe`) |
+| Nhạc nền | Setup tự tải 4 bài Mixkit (Mixkit Free License: online/quảng cáo online được, không TV/radio); muốn nhạc riêng thì bỏ vào `assets/music` | như Mac |
+| SFX (tuỳ chọn) | Tự bỏ file có giấy phép vào `assets/sfx` | như Mac |
+| Codex CLI (tuỳ chọn) | Để skill tự vẽ hình minh hoạ khi thiếu insert; không có thì bỏ qua | như Mac |
 
 Tất cả ở cột trên `setup` tự cài, trừ Homebrew/winget và tài khoản Claude.
 
@@ -80,6 +83,7 @@ Dưới đây `<python>` = `.venv/bin/python` (Mac) hoặc `.venv\Scripts\python
    > Kịch bản: (dán kịch bản nếu có — chữ trên màn hình sẽ bám nguyên văn).
 
    Claude Code sẽ: soát nguồn (`qc.py`, contact sheet, lỗi video AI) → nhận giọng (`transcribe.py`), hỏi lại từ không chắc
+   → lọc tạp âm giọng → dò và bỏ chỗ nói lặp/vấp (`stutter.py`), trám mối cắt bằng ảnh/b-roll (thiếu thì gọi Codex vẽ minh hoạ) → tự chọn nhạc
    → viết `work/build.py` từ mẫu → render **nháp** → tự soát bố cục + contact sheet → báo để xem.
 5. Góp ý bằng lời ("chữ hiện chậm hơn", "cảnh 3 đổi ảnh beam khác", "bỏ end card") → Claude sửa script, render lại đúng đoạn đó.
 6. Gõ "xuất bản giao" → file ở `projects/X/output/`, kèm báo cáo mạch dựng, thông số đã dùng + nguồn.

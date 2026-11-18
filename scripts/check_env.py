@@ -52,13 +52,16 @@ for n in ["InterDisplay-ExtraBold.otf", "Inter-Bold.otf", "BeVietnamPro-Black.tt
     try: ok(f"{n} ({Path(e365.find_font(n)).parent})")
     except FileNotFoundError: bad(f"font {n} → chép vào assets/fonts/")
 print("== GPU dựng: e365.HW =", e365.HW, "(vt = Mac, cuda = NVIDIA, none = CPU)")
+print("== Lọc tạp âm giọng (DeepFilterNet)")
+import denoise
+(ok if denoise.binary() else bad)("deep-filter " + (denoise.binary() or "→ <python> scripts/denoise.py --install"))
 print("== Assets / script")
 mus = [p for p in (ROOT / "assets/music").rglob("*") if p.suffix.lower() in (".mp3", ".wav")]
-(ok if mus else opt)(f"assets/music ({len(mus)} file)")
+(ok if mus else bad)(f"assets/music ({len(mus)} file)" + ("" if mus else " → <python> scripts/music.py --install"))
 sfx = [p for p in (ROOT / "assets/sfx").rglob("*") if p.suffix.lower() in (".mp3", ".wav")] if (ROOT / "assets/sfx").exists() else []
 (ok if sfx else opt)(f"assets/sfx ({len(sfx)} file)" + ("" if sfx else " — trống: SFX phải báo là tự tổng hợp"))
 for s in ["scripts/e365.py", "scripts/build_template.py", "scripts/cpu_watch.py", "scripts/transcribe.py", "scripts/words_to_caps.py",
-          "scripts/contact_sheet.py", "scripts/qc.py", "scripts/new_project.py"]:
+          "scripts/contact_sheet.py", "scripts/qc.py", "scripts/new_project.py", "scripts/denoise.py", "scripts/stutter.py", "scripts/music.py"]:
     (ok if (ROOT / s).exists() else bad)(s)
 r = subprocess.run([sys.executable, "scripts/e365.py", "--selftest"], capture_output=True, text=True, encoding="utf-8", errors="replace")
 (ok if r.returncode == 0 and "OK" in r.stdout else bad)("e365 selftest" + ("" if r.returncode == 0 else " → " + r.stderr[-300:]))

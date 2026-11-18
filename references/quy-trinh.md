@@ -59,6 +59,8 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
      Ghi bảng sửa của dự án vào `projects/X/work/fix.tsv` (mỗi dòng `sai<TAB>đúng`) để `words_to_caps.py --fix` áp tự động.
    - Câu nghi ngờ → nhận lại riêng đoạn đó (cắt `-ss/-t`) để so; hai lần ra giống nhau thì để theo lời nói thật (vd. "xem đồng bộ luôn nha").
    - Nhiều take cùng một câu → chọn **1 take**, không ghép hai nguồn (đã lỗi lặp từ khi ghép 2 take).
+   - **Lặp từ / vấp (chốt 18/11/2026)**: chạy `scripts/stutter.py` → nghe lại từng chỗ → nói lặp thì **giữ 1 lần (lần cuối)**, bỏ "ờ/à/ừm", nói cụt rồi nói lại;
+     mỗi mối cắt trong cảnh người nói **trám bằng animation/insert** 1,5–3 s (SEGS `cuts` + `covers`, shot `sync=True`).
    - Gợi ý dòng phụ đề: `scripts/words_to_caps.py` (cắt ở khoảng ngừng > 0,3 s, dấu câu, ≤ 42 ký tự cho 9:16, ~46–48 cho 16:9);
      không tách từ ghép (nâng|cấp, ánh|sáng, đèn|gầm, nhiệt|màu, căn|chỉnh, F10|Turbo…). Đọc lại, sửa, rồi dán vào `caps` của SEGS.
 3. **Mạch dựng** theo lời đọc: hook → reveal sản phẩm → lý do kỹ thuật → bằng chứng → lợi ích khi dùng → end card (nếu kênh cần).
@@ -79,7 +81,9 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
 7. **Âm thanh**: cắt khoảng lặng > 0,4 s (chừa 0,1 s), fade 12 ms vào / 15 ms ra ở mỗi mối cắt, highpass 90 Hz, chuẩn từng đoạn về -17 LUFS rồi nén nhẹ
    (2,5:1), nhạc duck theo giọng (sidechaincompress threshold 0.03 ratio 6), SFX tiết chế (whoosh ở chuyển cảnh lớn, tick ở số liệu, thump ở reveal/end,
    pop nhẹ ở keyword), bus SFX ~-6 dB dưới giọng. Chuẩn **-14 LUFS, true peak -1,5 dB** (`e365.final_mix`). Clip < 10 s: loudnorm 1 lượt có thể lệch ~±1 LU → đo lại.
-   Ưu tiên nhạc/SFX trong `assets/`. Chỉ tự tổng hợp khi không có, và phải báo. Nhạc ngắn hơn clip → nối vòng theo nhịp.
+   **Giọng lọc tạp âm trước khi cắt/trộn** (DeepFilterNet, `DENOISE`): 1 lượt siêu mạnh, vá lỗ 10 ms, gate nhẹ; giọng nhỏ dùng `soft`.
+   **Nhạc tự chọn** (`MUSIC="auto"`, `scripts/music.py`): nhạc người dùng trong `assets/music` thắng, không có thì bộ Mixkit đã tải; nối vòng có hoà âm 1,5 s.
+   Ưu tiên nhạc/SFX trong `assets/`. Chỉ tự tổng hợp khi không có, và phải báo.
    Giấy phép nhạc ghi ở `assets/music/_downloaded/SOURCES.md` (Mixkit Free License: dùng online/quảng cáo online được, không TV/radio).
    Tiếng hiện trường thật (tách vỏ, cắn, bấm công tắc) giữ lại khi tạo cảm giác ASMR; `keep` có `(None, giây)` để chừa khoảng nghe tiếng đó.
 8. **Ghép**: khoá timeline theo lưới frame (`keep_len` làm tròn theo FPS); mỗi segment đệm thêm ~6 frame nếu dùng xfade (xfade bỏ phần dư);

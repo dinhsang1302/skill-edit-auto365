@@ -4,6 +4,9 @@ Gói style dựng clip mặc định của xưởng **Edit365** cho clip sản p
 (Anton trắng + keyword đỏ viết hoa + từ nối Playfair nghiêng), grade tối, thẻ ảnh bay, khung kính chứa thông số có chip nguồn,
 phụ đề PNG, âm thanh chuẩn -14 LUFS.
 
+Tự động (v1.3): **lọc tạp âm giọng** (DeepFilterNet), **bỏ chỗ nói lặp/vấp** và trám mối cắt bằng ảnh/b-roll, **tự chọn nhạc nền** có giấy phép
+(Mixkit), chữ pop up hiện mượt và **đứng ≥ 1,2 s** mới xuống, thiếu hình minh hoạ thì **gọi Codex vẽ** (nếu máy có Codex CLI).
+
 ## Cài nhanh
 **Mac (Apple Silicon):**
 ```bash
@@ -24,6 +27,6 @@ Thật ra chỉ cần cài Claude Code + `git clone` skill: gõ *"Dùng Skill Ed
 - `setup.sh` (Mac), `setup.ps1` (Windows) — cài đặt + tạo thư mục làm việc
 - `SKILL.md` — điểm vào của skill
 - `references/` — `style.md` (nhận diện), `quy-trinh.md` (quy trình, CPU, luật nội dung), `loi-da-gap.md`
-- `scripts/` — `e365.py` (thư viện, tự chọn GPU Mac/Windows), `build_template.py`, `transcribe.py` (Mac mlx-whisper / Windows faster-whisper CUDA), `words_to_caps.py`, `qc.py`, `contact_sheet.py`, `new_project.py`, `check_env.py`, `cpu_watch.py`
+- `scripts/` — `e365.py` (thư viện, tự chọn GPU Mac/Windows), `build_template.py`, `transcribe.py` (Mac mlx-whisper / Windows faster-whisper CUDA), `words_to_caps.py`, `qc.py`, `contact_sheet.py`, `new_project.py`, `check_env.py`, `cpu_watch.py`, `denoise.py` (tự cài + lọc tạp âm), `stutter.py` (dò lặp/vấp), `music.py` (nhạc có giấy phép)
 - `examples/` — code job thật (16:9 nền tối, 16:9 đầy đủ 20 đoạn)
 - `assets/fonts/` — Anton, Playfair Display, Inter, Be Vietnam Pro (SIL Open Font License 1.1, xem `OFL_*.txt`)

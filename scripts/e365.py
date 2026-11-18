@@ -23,7 +23,7 @@ Cách dùng (trong work/build.py của dự án):
 Mẫu build hoàn chỉnh: scripts/build_template.py. Thử thư viện: <python> scripts/e365.py --selftest
 (<python> = .venv/bin/python trên Mac, .venv\\Scripts\\python trên Windows)
 """
-import os, sys, json, shutil, subprocess, numpy as np
+import os, sys, json, shutil, subprocess, hashlib, numpy as np
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
@@ -152,8 +152,19 @@ class VReader:
         return self.last                                   # hết nguồn → giữ frame cuối
     def close(self): self.p.kill(); self.p.wait()
 
+IMG_EXT = (".png", ".jpg", ".jpeg", ".webp")
+
+class ImgReader:
+    """Ảnh tĩnh (ảnh sản phẩm, ảnh Codex minh hoạ) dùng như 1 shot: cùng giao diện VReader; zoom chậm do frame_from (z0→z1)."""
+    def __init__(self, path, w, h):
+        im = Image.open(path).convert("RGB"); k = max(w / im.width, h / im.height)
+        self.w, self.h = round(im.width * k), round(im.height * k); self.im = im.resize((self.w, self.h), Image.LANCZOS)
+    def next(self): return self.im
+    def close(self): pass
+
 def reader_for(path, ss, W, H, z=(1, 1), fps=30, **kw):
-    """Mở VReader ở cỡ đủ cho zoom lớn nhất S=max(z): đọc (W*S, H*S) giữ tỉ lệ khung RA. Nguồn khác tỉ lệ → crop ở frame_from."""
+    """Ảnh tĩnh → ImgReader. Video: mở VReader ở cỡ đủ cho zoom lớn nhất S=max(z): đọc (W*S, H*S) giữ tỉ lệ khung RA. Nguồn khác tỉ lệ → crop ở frame_from."""
+    if Path(path).suffix.lower() in IMG_EXT: return ImgReader(path, W * max(z), H * max(z))
     S = max(z); info = probe(path)
     k = max(W * S / info["w"], H * S / info["h"])           # phủ kín khung ra
     return VReader(path, ss, round(info["w"] * k / 2) * 2, round(info["h"] * k / 2) * 2, fps=fps, **kw)
@@ -196,8 +207,10 @@ STYLES = {
 
 class Word:
     """Chữ động 1 từ/cụm. Đậm ("w","k"): trồi lên qua mask từ đáy chữ. Nghiêng ("it"): trượt ngang ~70 px + fade + blur.
-    Thời lượng người dùng chốt 11/10: mask 0,55 s · trượt 0,8 s · ra 0,35 s (bản 10 s cũ: 0,30/0,45/0,20)."""
-    IN_MASK, IN_SLIDE, OUT = 0.55, 0.80, 0.35
+    Thời lượng người dùng chốt 11/10: mask 0,55 s · trượt 0,8 s · ra 0,35 s (bản 10 s cũ: 0,30/0,45/0,20).
+    Chốt 18/11/2026: chữ pop up lên rồi ĐỨNG YÊN ≥ HOLD_MIN (1,2 s) mới được xuống; vào/ra đều ease mượt + mờ dần,
+    không lên/xuống đột ngột. t_out ngắn hơn mức tối thiểu sẽ tự kéo dài (build báo nếu tràn hết đoạn)."""
+    IN_MASK, IN_SLIDE, OUT, HOLD_MIN = 0.55, 0.80, 0.35, 1.2
     def __init__(self, text, sty, size, t_in, t_out=99, slide=-1, theme="dark", pad=40):
         path, col, ink, sw = STYLES[theme][sty]; f = ImageFont.truetype(str(path), size)
         l, t, r, b = f.getbbox(text, anchor="ls", stroke_width=sw)
@@ -209,6 +222,7 @@ class Word:
         self.img = Image.alpha_composite(shd.filter(ImageFilter.GaussianBlur(8)), txt)
         self.off = (l - pad, t - pad); self.adv = f.getlength(text); self.space = f.getlength(" ")
         self.top, self.bot = t, b                          # so với baseline (t âm)
+        t_out = max(t_out, t_in + (self.IN_MASK if sty != "it" else self.IN_SLIDE) + self.HOLD_MIN)   # đứng đủ lâu mới xuống
         self.t_in, self.t_out, self.slide, self.text = t_in, t_out, slide, text
         self.mask = sty != "it"; self.gh = b - t; self.clip = pad + (b - t) + 12
     def draw(self, canvas, t, x, y):
@@ -216,13 +230,13 @@ class Word:
         im = self.img; X = x + self.off[0]; Y = y + self.off[1]
         if self.mask:
             p = ease((t - self.t_in) / self.IN_MASK)
-            q = ((t - self.t_out) / self.OUT) ** 2 if t > self.t_out else 0
+            q = ease((t - self.t_out) / self.OUT) if t > self.t_out else 0     # ra mượt (ease), không giật
             dy = int(self.gh * 1.05 * ((1 - p) + q))
             if dy:
                 vis = self.clip - dy
                 if vis <= 0: return
                 im = im.crop((0, 0, im.width, vis)); Y += dy
-            a = min(1, (t - self.t_in) / 0.1)
+            a = min(1, (t - self.t_in) / 0.18) * (1 - 0.6 * q)
         else:
             p = ease((t - self.t_in) / self.IN_SLIDE)
             q = ease((t - self.t_out) / self.OUT) if t > self.t_out else 0
@@ -340,6 +354,40 @@ def keep_len(keep, fps):
     """Thời lượng đoạn (khoá theo lưới frame). keep: [(a,b)] giây nguồn, hoặc (None, d) = khoảng lặng d giây."""
     return round(sum((b - a) if a is not None else b for a, b in keep) * fps) / fps
 
+def out2src(keep, o):
+    """Giây trong đoạn đã cắt → giây nguồn (khoảng lặng (None,d) trả None)."""
+    for a, b in keep:
+        d = b if a is None else b - a
+        if o <= d: return None if a is None else a + o
+        o -= d
+    a, b = keep[-1]; return b
+
+def keep_minus(keep, cuts, min_piece=0.12):
+    """Bỏ các khúc nói lặp/vấp (cuts: [(a,b)] hoặc [{a,b}] giây nguồn, từ scripts/stutter.py) khỏi keep → keep mới.
+    Mảnh còn lại ngắn hơn min_piece bị bỏ (tránh tiếng cụt)."""
+    cs = sorted((c["a"], c["b"]) if isinstance(c, dict) else tuple(c) for c in cuts); out = []
+    for a, b in keep:
+        if a is None: out.append((a, b)); continue
+        pieces = [(a, b)]
+        for ca, cb in cs:
+            nxt = []
+            for x, y in pieces:
+                if cb <= x or ca >= y: nxt.append((x, y)); continue
+                if ca > x: nxt.append((x, ca))
+                if cb < y: nxt.append((cb, y))
+            pieces = nxt
+        out += [(round(x, 3), round(y, 3)) for x, y in pieces if y - x >= min_piece]
+    return out
+
+def joins(keep, gap=0.05):
+    """Mốc (giây trong đoạn) các MỐI CẮT thật giữa 2 khúc nguồn không liền nhau → hình người nói sẽ nhảy, phải trám."""
+    res, o = [], 0
+    for i, (a, b) in enumerate(keep):
+        d = b if a is None else b - a
+        if i and a is not None and keep[i - 1][0] is not None and a - keep[i - 1][1] > gap: res.append(round(o, 3))
+        o += d
+    return res
+
 def src2out(keep, t):
     """Giây nguồn → giây trong đoạn đã cắt."""
     o = 0
@@ -376,10 +424,42 @@ def cut_voice(src, keep, D, out, target=-17):
          f"attack=8:release=120,apad=pad_dur=2,atrim=0:{D:.4f}", "-ar", "48000", "-ac", "2", out])
     os.remove(tmp)
 
+def voice_source(src, cache_dir, mode="strong"):
+    """Tiếng giọng đã lọc tạp âm của 1 file nguồn (DeepFilterNet, scripts/denoise.py), cache theo tên+cỡ+mtime file.
+    mode: "strong" (siêu mạnh, mặc định) · "soft" (giọng nhỏ/xa) · None (giữ nguyên). Thiếu deep-filter → báo và dùng tiếng gốc."""
+    if not mode: return src
+    src = Path(src); st = src.stat(); cache_dir = Path(cache_dir); cache_dir.mkdir(parents=True, exist_ok=True)
+    out = cache_dir / f"{src.stem}_{hashlib.md5(f'{src}{st.st_size}{st.st_mtime}{mode}'.encode()).hexdigest()[:8]}_denoise.wav"
+    if out.exists(): return out
+    sys.path.insert(0, str(ROOT / "scripts")); import denoise as DN
+    if not (DN.binary() or _try(DN.install)):
+        print("CẢNH BÁO: chưa có deep-filter → dùng tiếng gốc, chưa lọc tạp âm"); return src
+    DN.denoise(src, out, soft=(mode == "soft"), quiet=True); print(f"lọc tạp âm ({mode}): {src.name} → {out.name}"); return out
+
+def _try(f):
+    try: return f()
+    except BaseException as e: print("deep-filter:", e); return None
+
 def load_mono(path, ss=None, dur=None, sr=48000):
     a = ["ffmpeg", "-threads", TH, "-v", "error"] + (["-ss", f"{ss:.3f}", "-t", f"{dur:.3f}"] if ss is not None else []) + \
         ["-i", str(path), "-ac", "1", "-ar", str(sr), "-f", "f32le", "-"]
     return np.frombuffer(subprocess.run(a, capture_output=True).stdout, np.float32).astype(np.float64)
+
+def music_bed(path, NS, sr=48000, xf=1.5):
+    """Nhạc nền dài đúng NS mẫu (mono, chuẩn đỉnh 1): bài ngắn hơn clip thì nối vòng, hoà âm xf giây ở mỗi chỗ nối (không giật)."""
+    trk = load_mono(path, sr=sr); trk /= (np.abs(trk).max() + 1e-9); X = int(xf * sr)
+    out = trk.copy()
+    while len(out) < NS:
+        r = np.linspace(0, 1, X); out = np.concatenate([out[:-X], out[-X:] * (1 - r) + trk[:X] * r, trk[X:]])
+    return out[:NS]
+
+def resolve_music(music, key=""):
+    """MUSIC trong build: None | đường dẫn | "auto" | "auto:<mood>" (tech/drive/groove/warm) → (path|None, mô tả)."""
+    if not music: return None, "không nhạc"
+    if isinstance(music, str) and music.startswith("auto"):
+        sys.path.insert(0, str(ROOT / "scripts")); import music as M
+        return M.pick(music.split(":", 1)[1] if ":" in music else "auto", key)
+    return Path(music), Path(music).name
 
 def write_wav(path, x, sr=48000):
     from scipy.io import wavfile
