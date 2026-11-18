@@ -11,4 +11,6 @@ và `{{SK}}/references/` (style.md, quy-trinh.md, loi-da-gap.md) trước khi d�
 - Không bịa thông số; ảnh AI chỉ minh hoạ, không làm bằng chứng (hộp, beam, trước/sau phải là ảnh thật).
 - Nhạc/SFX chỉ dùng file có giấy phép trong `assets/music`, `assets/sfx` (`MUSIC="auto"` tự chọn bộ Mixkit đã tải).
 - Giọng tự lọc tạp âm (DeepFilterNet), tự bỏ chỗ lặp/vấp (`scripts/stutter.py`) và trám mối cắt bằng insert; chữ pop up đứng ≥ 1,2 s.
+- Tự chọn khúc không rung, chống rung người nói; tận dụng nguồn quay (chèn 2–4 s/lần, người nói liền ≤ 8 s).
+- Nháp rà 720p → duyệt → đưa vào CapCut theo track (MC tắt tiếng / chèn / chữ MOV trong suốt / voice / nhạc), không phụ đề, không tự thêm hiệu ứng CapCut.
 - Xong bản nào thì mở thư mục chọn sẵn file đó ({{REVEAL}}) để người dùng xem ngay.

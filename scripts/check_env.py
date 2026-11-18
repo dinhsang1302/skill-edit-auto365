@@ -62,7 +62,7 @@ mus = [p for p in (ROOT / "assets/music").rglob("*") if p.suffix.lower() in (".m
 sfx = [p for p in (ROOT / "assets/sfx").rglob("*") if p.suffix.lower() in (".mp3", ".wav")] if (ROOT / "assets/sfx").exists() else []
 (ok if sfx else opt)(f"assets/sfx ({len(sfx)} file)" + ("" if sfx else " — trống: SFX phải báo là tự tổng hợp"))
 for s in ["scripts/e365.py", "scripts/build_template.py", "scripts/cpu_watch.py", "scripts/transcribe.py", "scripts/words_to_caps.py",
-          "scripts/contact_sheet.py", "scripts/qc.py", "scripts/new_project.py", "scripts/denoise.py", "scripts/stutter.py", "scripts/music.py"]:
+          "scripts/contact_sheet.py", "scripts/qc.py", "scripts/new_project.py", "scripts/denoise.py", "scripts/stutter.py", "scripts/music.py", "scripts/shake.py", "scripts/capcut_export.py"]:
     (ok if (ROOT / s).exists() else bad)(s)
 r = subprocess.run([sys.executable, "scripts/e365.py", "--selftest"], capture_output=True, text=True, encoding="utf-8", errors="replace")
 (ok if r.returncode == 0 and "OK" in r.stdout else bad)("e365 selftest" + ("" if r.returncode == 0 else " → " + r.stderr[-300:]))

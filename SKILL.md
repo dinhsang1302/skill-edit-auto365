@@ -75,20 +75,37 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
      (`-i` phải trước `--`; ~1–2 phút/ảnh). Chỉ cho minh hoạ/bối cảnh — **không** tạo hộp, thông số, vệt sáng, ảnh trước/sau, xe khách.
      Soát ảnh (chữ sai dấu, tay, logo méo), ghi prompt vào `brief.md`, báo ảnh nào là AI.
    Mọi mốc cắt, chữ, vị trí, âm lượng nằm trong script; sửa = sửa script rồi chạy lại.
-5. **Nháp để rà = 360p** (anh chốt 18/11/2026): `cd "$WS" && <python> projects/X/work/build.py` → `output/<NAME>_<ratio>_v<n>_nhap360p.mp4`
-   (vẽ thẳng 640x360, rất nhanh). Toạ độ/cỡ chữ trong SEGS luôn viết theo khung thiết kế 1920x1080 (9:16: 1080x1920), build tự quy đổi.
-   Soát tự động phải qua: tràn khung, đè phụ đề, **chữ đè đầu/vai người** (YuNet, `FACE_CHECK`, chặn render và gợi ý dời sang phía đối diện người),
-   mối cắt chưa trám, chữ không đủ thời gian đứng. Contact sheet bản nháp → **xem ảnh**. Bước dự kiến > 5 phút → báo trước.
-6. **Bản giao (clip chính) = 4K**: `FINAL=1 VER=n` (Mac/Git Bash: `FINAL=1 VER=1 <python> …`) → 3840x2160 (9:16: 2160x3840), chữ vẽ thẳng ở 4K,
-   HEVC phần cứng 45 Mbit (máy không GPU: libx264). Nguồn dưới 4K → build báo "phóng lên 4K". Ép cỡ khác: `RES=1080`. Mỗi lần sửa tăng `VER`.
-7. **Tự kiểm (bắt buộc trước khi báo xong)**: `<python> scripts/qc.py <bản giao>` (~-14 LUFS, TP ≤ -1,5, hình = tiếng), contact sheet bản cuối
-   (soát mắt chữ không đè mặt/vai người), đếm khung đủ, và **`<python> scripts/stutter.py --check <bản giao>`** phải in "ĐẠT — không còn lặp/nói lại";
-   CHƯA ĐẠT → thêm chỗ đó vào `cuts` (đổi mốc bản giao về giây nguồn), xuất `VER` mới, soát lại. Không giao bản còn lặp.
+   - **Rung (tự làm)**: shot chèn để giây nguồn `None` → build tự chọn khúc **ít rung nhất** của clip (bỏ 0,5 s đầu lúc bấm máy;
+     lia/dolly đều không tính là rung — `scripts/shake.py`). Cảnh người nói **rung nhẹ → tự chống rung** (deshake + phóng 6 %, `STAB`);
+     **rung nặng → build chặn**, phải phủ shot chèn ổn định lên khúc đó (giữ tiếng). Chèn rung → build chặn, chỉ clip + giây.
+     Soát nhanh cả thư mục: `<python> scripts/shake.py 2.5 <dự án>/insert/*.mp4`.
+   - **Tận dụng nguồn quay, không chèn sơ sài**: mỗi 2–4 s một shot chèn khớp lời (nhiều góc, nhiều khúc từ các clip đã quay — một clip dài
+     dùng được nhiều khúc khác nhau); người nói liền mạch ≤ `MC_MAX` (8 s) — quá thì build chặn. Mở clip vẫn thấy người dẫn.
+   - **Trình bày (học từ mẫu, KHÔNG lạm dụng — mỗi kiểu vài lần/clip, ưu tiên hình quay thật)**:
+     · **card**: `sh(o, "insert/x.mp4", None, card=dict(chip="F10 Turbo V2 · 4300K · cos", side="left"))` — cảnh quay trong khung bo góc ~58 %
+       trên nền mờ tối của chính nó, chip nhãn góc trên trái, chữ lớn phía đối diện bằng `kin`: từ nối nghiêng (`it`, vd. *phiên bản*) + số/keyword
+       đỏ đậm (`k`, vd. **4300K**). Dùng cho câu nêu thông số / phiên bản / so sánh.
+     · chữ lớn keyword đỏ + từ nối nghiêng quanh người dẫn; zoom vào thông số in trên hộp (bằng chứng) kèm chip nguồn.
+     · Ý tưởng thêm từ các style trong máy (`styles/` của xưởng: Auto365, MagentX, Bàn ảnh; skill luancut/papercut/seecut) — chỉ mượn khi hợp lời.
+5. **Nháp để rà = 720p** (anh chốt 18/11/2026): `cd "$WS" && <python> projects/X/work/build.py` → `output/<NAME>_<ratio>_v<n>_nhap720p.mp4`
+   (vẽ thẳng 1280x720). Toạ độ/cỡ chữ trong SEGS luôn viết theo khung thiết kế 1920x1080 (9:16: 1080x1920), build tự quy đổi.
+   Soát tự động phải qua: tràn khung, đè phụ đề, **chữ đè đầu/vai người** (YuNet, `FACE_CHECK`), mối cắt chưa trám, chữ không đủ thời gian đứng,
+   **rung**, **người nói liền mạch quá lâu**. Contact sheet bản nháp → **xem ảnh**; **`<python> scripts/stutter.py --check <bản nháp>`** phải ĐẠT
+   (CHƯA ĐẠT → thêm vào `cuts`, xuất `VER` mới). Gửi bản nháp cho người dùng duyệt. Bước dự kiến > 5 phút → báo trước.
+6. **Duyệt xong → ĐƯA VÀO CAPCUT (không xuất file ghép)**: người dùng tạo 1 project trống trong CapCut, đặt tên, **tắt CapCut**, rồi
+   `CAPCUT="<tên project>" <python> projects/X/work/build.py` (cần CapCut MCP `~/capcut-mcp-macos` hoặc `~/capcut-mcp-windows`; project đã có nội dung →
+   từ chối, `CAPCUT_CLEAR=1` để ghi đè, bản cũ được sao lưu). Track:
+   **MC** (clip người dẫn đã cắt lặp/vấp, bản chống rung nếu có, **tắt tiếng**, chạy liền bên dưới) · **CHÈN** (nguồn chèn gốc, zoom = keyframe; cảnh card = clip dựng sẵn) ·
+   **CHỮ 1..n** (chữ animation Claude vẽ, MOV ProRes 4444 trong suốt — **không dùng chữ CapCut, không phụ đề**) · **VOICE** (giọng MC + voice off đã lọc tạp âm,
+   cắt lặp; voice off = file tiếng hoặc video chỉ lấy tiếng) · **NHẠC** (đã duck theo giọng) · **SFX** (nếu có).
+   Không tự thêm chuyển cảnh/hiệu ứng/filter CapCut (người dùng tự thêm). Soát bằng CapCut MCP `capcut_frame` vài mốc trước khi báo.
+   Chỉ khi người dùng đòi file ghép: `FINAL=1 VER=n` → 4K HEVC (3840x2160 / 2160x3840).
 
 ## Bước 3 — Giao
 - Mở thư mục chọn sẵn file: Mac `open -R <file>`, Windows `explorer.exe /select,"<file theo dạng C:\...>"`.
 - Báo 3–5 dòng: mạch dựng, chỗ cắt vì lỗi, thông số đã dùng + nguồn, phần tạm (nhạc/CTA), từ cần soát.
 - Người dùng góp ý → sửa `build.py`, render lại đúng đoạn (`build.py 03`), xuất `VER` mới.
+- Đã đưa vào CapCut: báo tên project + các track; nhắc mở CapCut để thêm chuyển cảnh/hiệu ứng nếu muốn.
 
 ## Luật không thương lượng
 Không bịa thông số (chỉ lời đọc đã xác nhận / in trên hộp / fact sheet, kèm chip nguồn). Ảnh AI chỉ minh hoạ, không làm bằng chứng
@@ -105,6 +122,8 @@ Trần CPU 50% máy, render từng đoạn tuần tự (`e365.start_cpu_watch`).
 | `scripts/build_template.py` | Mẫu build 1 dự án: SEGS → render tuần tự có cache → âm thanh → bản giao |
 | `scripts/transcribe.py`, `words_to_caps.py` | Nhận giọng tiếng Việt từng từ (Mac mlx-whisper / Windows faster-whisper CUDA), gợi ý phụ đề |
 | `scripts/denoise.py` | Tự cài DeepFilterNet 0.5.6 (kiểm SHA-256) + lọc tạp âm giọng (siêu mạnh / `--soft`) |
+| `scripts/shake.py` | Đo rung, chọn khúc ổn định, chống rung cảnh người nói (cache `work/shake`, `work/stab`) |
+| `scripts/capcut_export.py` | Đưa bản dựng vào project CapCut theo track (MC / CHÈN / CHỮ MOV trong suốt / VOICE / NHẠC / SFX) |
 | `scripts/stutter.py` | Nghe sâu (lộ lời whisper giấu) + dò lặp / nói lại / vấp / ngừng dài → `cuts.json`; `--check <bản giao>` soát cuối |
 | `scripts/data/face_detection_yunet_2023mar.onnx` | Nhận diện mặt (OpenCV YuNet, MIT) cho soát chữ đè đầu/vai |
 | `scripts/music.py` | Tự tải bộ nhạc Mixkit có giấy phép + chọn bài theo mood |

@@ -192,9 +192,9 @@ class Encoder:
         elif final:
             codec = ["-threads", X264_THREADS, "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-x264-params", "lookahead-threads=1"]
         elif HW == "vt":
-            codec = ["-c:v", "h264_videotoolbox", "-b:v", "12M" if big else ("1500k" if min(W, H) <= 400 else "12M")]
+            codec = ["-c:v", "h264_videotoolbox", "-b:v", "1500k" if min(W, H) <= 400 else "5M" if min(W, H) <= 800 else "12M"]
         elif HW == "cuda":
-            codec = ["-c:v", "h264_nvenc", "-preset", "p4", "-b:v", "1500k" if min(W, H) <= 400 else "12M"]
+            codec = ["-c:v", "h264_nvenc", "-preset", "p4", "-b:v", "1500k" if min(W, H) <= 400 else "5M" if min(W, H) <= 800 else "12M"]
         else:
             codec = ["-threads", "4", "-c:v", "libx264", "-crf", "20", "-preset", "veryfast"]
         self.p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",

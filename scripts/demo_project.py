@@ -41,7 +41,9 @@ if has_voice:
     run(PY, "scripts/transcribe.py", P / "input/demo.mp4", P / "work/words.json"); run(PY, "scripts/words_to_caps.py", P / "work/words.json")
 
 step("4. Build nháp theo mẫu scripts/build_template.py (encode GPU nếu có)")
-shutil.copy("scripts/build_template.py", P / "work/build.py"); run(PY, P / "work/build.py")
+shutil.copy("scripts/build_template.py", P / "work/build.py")
+os.environ["SHAKE_CHECK"] = "0"                            # hình testsrc2 tổng hợp chuyển động liên tục → không soát rung
+run(PY, P / "work/build.py")
 
 step("5. Tự kiểm bản ra")
 out = next((P / "output").glob("*.mp4")); run(PY, "scripts/qc.py", out); run(PY, "scripts/contact_sheet.py", P / "output/contact.jpg", out, 2, 6)

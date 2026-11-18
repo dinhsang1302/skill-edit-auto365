@@ -86,14 +86,17 @@ Dưới đây `<python>` = `.venv/bin/python` (Mac) hoặc `.venv\Scripts\python
    → lọc tạp âm giọng → dò và bỏ chỗ nói lặp/vấp (`stutter.py`), trám mối cắt bằng ảnh/b-roll có sẵn trong `insert/` (máy có Codex thì vẽ thêm minh hoạ được) → tự chọn nhạc
    → viết `work/build.py` từ mẫu → render **nháp** → tự soát bố cục + contact sheet → báo để xem.
 5. Góp ý bằng lời ("chữ hiện chậm hơn", "cảnh 3 đổi ảnh beam khác", "bỏ end card") → Claude sửa script, render lại đúng đoạn đó.
-6. Gõ "xuất bản giao" → file ở `projects/X/output/`, kèm báo cáo mạch dựng, thông số đã dùng + nguồn.
+6. Nháp 720p đã ưng → tạo 1 project trống trong CapCut, đặt tên, tắt CapCut, gõ "đưa vào CapCut project <tên>" → Claude dựng sẵn các track:
+   MC (tắt tiếng) · CHÈN · CHỮ (animation, nền trong suốt) · VOICE · NHẠC. Bạn mở CapCut tự thêm chuyển cảnh/hiệu ứng rồi xuất.
+   Cần file ghép luôn thì gõ "xuất bản giao" → file 4K ở `projects/X/output/`.
 
 Tự chạy tay (không cần Claude):
 ```bash
 # Mac
-.venv/bin/python projects/X/work/build.py               # nháp
+.venv/bin/python projects/X/work/build.py               # nháp 720p
+CAPCUT="Ten project" .venv/bin/python projects/X/work/build.py   # đưa vào CapCut (CapCut phải tắt)
 .venv/bin/python projects/X/work/build.py 03            # chỉ đoạn 03
-FINAL=1 VER=2 .venv/bin/python projects/X/work/build.py # bản giao 4K v2 (nháp ở trên ra 360p để rà)
+FINAL=1 VER=2 .venv/bin/python projects/X/work/build.py # file ghép 4K v2 (chỉ khi cần)
 .venv/bin/python scripts/stutter.py --check projects/X/output/<file>.mp4   # soát còn lặp/nói lại không
 .venv/bin/python scripts/qc.py projects/X/output/<file>.mp4
 ```
@@ -107,7 +110,7 @@ $env:FINAL=1; $env:VER=2; .venv\Scripts\python projects\X\work\build.py; Remove-
 ## 4. Phần cứng & tốc độ
 - `e365` tự chọn: Mac = videotoolbox + `scale_vt`; Windows NVIDIA = NVDEC + `scale_cuda`, nháp `h264_nvenc`; không GPU = CPU. Ép bằng `E365_HW=vt|cuda|none`.
 - Trần CPU = 50% số luồng máy (`cpu_watch.py` tự tạm dừng ffmpeg khi vượt) để máy vẫn làm việc khác được.
-- Nháp rà xuất **360p** (rất nhanh, file nhẹ); bản giao (clip chính) xuất **4K** HEVC phần cứng — clip ~75 s mất vài phút. Ép cỡ khác: `RES=1080`.
+- Nháp rà xuất **720p** (rất nhanh, file nhẹ); bản giao (clip chính) xuất **4K** HEVC phần cứng — clip ~75 s mất vài phút. Ép cỡ khác: `RES=1080`.
 - Nhận giọng lần đầu tải model ~1,6 GB. Windows có GPU: faster-whisper CUDA; lỗi CUDA thì tự chạy CPU (chậm, có báo).
 - Clip Sony XAVC (4K 4:2:2 hoặc rơi frame khi giải GPU) được tự chuyển giải mã CPU 1 luồng — chậm hơn, bình thường.
 

@@ -93,7 +93,7 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
    hai cảnh **cùng khung nối tiếp** (cùng nguồn, cỡ khung gần nhau) → hoà tan nhẹ ~6 frame cho đỡ khựng. **Hạn chế pop up**: chỉ giữ chữ thật sự cần
    (số liệu, tiêu đề chương, tên sản phẩm, CTA); còn lại để phụ đề.
 9. **Tự kiểm trước khi giao**: contact sheet bản cuối (mỗi cảnh ≥ 1 frame), không chữ đè sản phẩm/thông số/**đầu, vai người** (build tự soát YuNet), không còn frame lỗi AI,
-   `scripts/stutter.py --check <bản giao>` ra ĐẠT (không còn lặp/nói lại). Nháp rà xuất 360p, bản giao 4K (chốt 18/11/2026).
+   `scripts/stutter.py --check <bản nháp>` ra ĐẠT (không còn lặp/nói lại), không chèn khúc rung (`shake.py`). Nháp rà 720p → duyệt → đưa vào CapCut theo track; file ghép 4K chỉ khi được yêu cầu (chốt 18/11/2026).
    `<python> scripts/qc.py` (LUFS, TP, thời lượng tiếng = hình), soát bố cục tự động đã qua (`check_layout`). Sửa màu → so cùng khung hình bản trước/bản mới.
 
 ## 9. Luật nội dung (không thương lượng)
