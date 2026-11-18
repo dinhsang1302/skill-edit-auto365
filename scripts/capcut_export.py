@@ -95,6 +95,11 @@ def export(project, W, H, fps, clips, texts, voice, music=None, sfx=None, clear=
     for f, name in ((voice, "VOICE"), (music, "NHẠC"), (sfx, "SFX")):
         if f:
             edits.add_clip(data, str(f), start=0, track_index=track("audio", name)); na += 1
+    if clear:                                                # xoá vật liệu mồ côi của timeline cũ (không để phình project)
+        used = {x for t in data["tracks"] for g in t["segments"] for x in [g.get("material_id")] + list(g.get("extra_material_refs") or [])}
+        for k, v in data["materials"].items():
+            if isinstance(v, list) and v and all(isinstance(m, dict) and "id" in m for m in v):
+                data["materials"][k] = [m for m in v if m["id"] in used]
     res = d.save()
     print(f"CapCut '{project}': {len(clips)} clip hình · {len(texts)} chữ trên {len(lanes)} track · {na} track tiếng → {res['saved']}")
     return res

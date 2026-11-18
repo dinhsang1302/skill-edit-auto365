@@ -21,8 +21,8 @@ Quy trình giao (anh chốt 18/11/2026): NHÁP để rà = 720p (vẽ thẳng 12
   ĐƯA VÀO CAPCUT, không xuất file ghép:  CAPCUT="<tên project CapCut trống>" <python> projects/<X>/work/build.py
   (track MC tắt tiếng · track CHÈN · track CHỮ = MOV trong suốt · VOICE · NHẠC · SFX — xem scripts/capcut_export.py).
   Chỉ khi người dùng đòi file ghép: FINAL=1 → 4K (3840x2160 / 2160x3840, HEVC phần cứng 45 Mbit; máy không GPU → libx264).
-Rung (chốt 18/11/2026): shot chèn có giây nguồn None → tự chọn khúc ổn định nhất (scripts/shake.py); cảnh người nói rung nhẹ
-  → tự chống rung; rung nặng / chèn rung → build chặn và chỉ chỗ.
+Rung (chốt 18/11/2026): shot chèn có giây nguồn None → tự chọn khúc ổn định nhất (scripts/shake.py); chèn rung → build chặn và chỉ chỗ.
+  KHÔNG tự chống rung (người dùng bấm chống rung trong CapCut); cảnh người nói rung chỉ in mốc để biết.
   Toạ độ/cỡ chữ trong SEGS, CAP luôn viết theo khung THIẾT KẾ W×H (1920x1080 hoặc 1080x1920); build tự nhân hệ số E.S.
   Ép cỡ khác: RES=<cạnh ngắn> (vd. RES=1080).
 Tham số môi trường: FINAL=1 (bản giao), VER=<n> (số phiên bản, mỗi lần sửa tăng 1, không ghi đè bản cũ),
@@ -50,7 +50,7 @@ MUSIC_GAIN = 0.22
 SFX_WHOOSH = None                                           # vd. "whoosh/Transitions SFX_13.wav" (tính từ assets/sfx) — chỉ ở chuyển cảnh lớn; bảng chuẩn: assets/sfx/QUY_TAC_SU_DUNG.md
 DENOISE = "strong"                                          # lọc tạp âm giọng: "strong" siêu mạnh · "soft" giọng nhỏ/xa · None tắt
 SHAKE_CHECK = os.environ.get("SHAKE_CHECK", "1") == "1"    # soát rung (tắt chỉ cho hình tổng hợp như demo testsrc2)
-STAB = True                                                 # cảnh người nói rung nhẹ → tự chống rung (deshake + phóng 6 %); rung nặng → phải phủ insert
+STAB = False                                                # anh chốt 18/11: KHÔNG tự chống rung — anh bấm chống rung trong CapCut; build chỉ in mốc MC rung để anh biết
 MC_MAX = 8.0                                                # giây tối đa chỉ thấy người nói liền một mạch → quá thì build chặn: chèn thêm nguồn quay
 FACE_CHECK = True                                           # chặn render nếu chữ động đè đầu/vai người (YuNet) — không tắt khi giao bản
 AUTO_COVER = True                                           # thiếu covers → tự lấy ảnh/clip có sẵn trong insert/; không có gì → punch-in (đổi cỡ khung)
@@ -228,13 +228,13 @@ def check(s):
     for j in E.joins(s["keep"]):
         cur = [x for x in sh if x[0] <= j + 1e-6][-1]
         if cur[3].get("sync") and not cur[3].get("punch"): errs.append(f"đoạn {s['id']}: mối cắt {j:.2f}s chưa trám → thêm 1 mục vào covers")
-    for k, (o0, src, ss, p) in enumerate(sh):               # rung: chèn phải ổn; người nói rung nặng phải phủ insert
+    for k, (o0, src, ss, p) in enumerate(sh):               # rung: chèn phải là khúc ổn; người nói rung chỉ báo mốc
         o1 = sh[k + 1][0] if k + 1 < len(sh) else L
         if p.get("stab") or not SHAKE_CHECK: continue
         mc = p.get("sync") or src == s["a"]
         m, x = SH.window(PRJ / src, ss, ss + o1 - o0); lv = SH.level(m, x)
-        if lv == "RUNG NẶNG" and mc:
-            errs.append(f"đoạn {s['id']}: người nói {o0:.1f}–{o1:.1f}s RUNG NẶNG (TB {m:.2f}) → phủ shot chèn ổn định lên khúc này (giữ tiếng)")
+        if lv != "ỔN" and mc:                              # người nói không đổi khúc được → chỉ báo mốc (anh chống rung trong CapCut)
+            print(f"  lưu ý rung: đoạn {s['id']} người nói {o0:.1f}–{o1:.1f}s {lv} (TB {m:.2f}) → chống rung trong CapCut nếu cần")
         elif lv != "ỔN" and not mc:
             errs.append(f"đoạn {s['id']}: chèn {Path(src).name} từ {ss:.1f}s {lv} (TB {m:.2f}, đỉnh {x:.2f}) → để giây nguồn None (tự chọn khúc ổn) hoặc đổi clip")
     run_mc = 0                                              # tận dụng nguồn quay: không để người nói liền mạch quá MC_MAX
