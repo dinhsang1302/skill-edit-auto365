@@ -14,7 +14,7 @@ try:
     import mlx_whisper; BACKEND = "mlx"
 except ImportError:
     BACKEND = "fw"
-MODEL = sys.argv[3] if len(sys.argv) > 3 else ("mlx-community/whisper-large-v3-turbo" if BACKEND == "mlx" else "large-v3-turbo")
+MODEL = sys.argv[3] if __name__ == "__main__" and len(sys.argv) > 3 else ("mlx-community/whisper-large-v3-turbo" if BACKEND == "mlx" else "large-v3-turbo")
 _FW = None
 
 def _fw_model():

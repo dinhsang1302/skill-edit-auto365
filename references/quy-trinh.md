@@ -5,7 +5,7 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
 > **Mac và Windows.** `<python>` = `.venv/bin/python` (Mac) hoặc `.venv\Scripts\python` (Windows). Thư viện `e365` tự chọn phần cứng:
 > Mac = videotoolbox + `scale_vt`, nháp `h264_videotoolbox`; Windows GPU NVIDIA = NVDEC (`-hwaccel cuda`) + `scale_cuda`, nháp `h264_nvenc`
 > (không có `scale_cuda` → giải mã NVDEC + scale CPU; không có GPU → CPU). Ép bằng biến `E365_HW=vt|cuda|none`.
-> Trần CPU = **50% số luồng của máy** (Mac 10 nhân → 500%; i7-14700K 28 luồng → 1400%); x264 bản giao Mac 2 luồng, Windows 4 luồng (`E365_X264_THREADS`).
+> Trần CPU = **70% số luồng của máy** (nâng 19/11/2026, đổi qua E365_CPU) (Mac 10 nhân → 500%; i7-14700K 28 luồng → 1400%); x264 bản giao Mac 2 luồng, Windows 4 luồng (`E365_X264_THREADS`).
 > Các số đo bên dưới là trên Mac. Contact sheet theo mốc dùng `file@giây` (dấu @ vì đường dẫn Windows có "C:").
 
 ## 4. Giới hạn tài nguyên máy (bắt buộc — máy anh Việt làm việc khác song song)
@@ -52,6 +52,8 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
    Clip AI Gemini/Veo có dấu ✦ góc phải dưới → xoá bằng `scripts/unwm_gemini.py` (1280x720); cỡ khác thì đo alpha lại.
    Clip điện thoại quay dọc có metadata xoay → `e365.probe` trả w/h đã xoay. Clip camera chĩa trần/không có hình dùng được → chỉ lấy tiếng.
    Ghi danh mục tư liệu (file, nội dung, mốc dùng được, lỗi) vào `brief.md`.
+1b. **Che biển số** (anh chốt 19/11/2026): thấy biển số (xe chính, xe khác đọc được, số sơn trên thân xe) → che trước khi dựng bằng `scripts/bienso/`
+   (quy trình ở `SKILL.md` bước 2.1b). Soát `qc_<id>.jpg` từng vùng; không lộ chữ dù 1 khung trong khúc được dùng.
 2. **Transcript**: `<python> scripts/transcribe.py <video> projects/X/work/words.json` (cả thư mục: truyền thư mục), rồi **hiệu đính tay**
    tên sản phẩm, đơn vị W/K/lm, thuật ngữ cos/pha/bi gầm. Từ không chắc → đánh dấu và hỏi anh.
    - Lỗi nhận giọng đã gặp: "code"→**cos**, "cốt"→**cos**, "slide"→**X-Light**, "mỗi điện"→mỗi bên, "chứa ngại vật"→chướng ngại vật,

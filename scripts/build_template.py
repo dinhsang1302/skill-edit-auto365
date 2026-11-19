@@ -132,15 +132,23 @@ def shots_of(s, covers=True):
     if key not in _SHOTS: _SHOTS[key] = _resolve(s, _shots_raw(s, covers))
     return _SHOTS[key]
 
+def BS(src):
+    """Bản đã che biển số (insert_bs/, input_bs/ — scripts/bienso/render.py), cùng thời lượng → mốc giữ nguyên. Không có thì dùng gốc."""
+    p = Path(src)
+    if p.parts and p.parts[0] in ("insert", "input"):
+        b = Path(p.parts[0] + "_bs", *p.parts[1:])
+        if (PRJ / b).exists(): return b.as_posix()
+    return src
+
 def _resolve(s, res):
     L = seg_len(s); out = []
     for k, (o0, src, ss, p) in enumerate(res):
         o1 = res[k + 1][0] if k + 1 < len(res) else L
-        if ss is None: ss = SH.best(PRJ / src, o1 - o0)
+        if ss is None: ss = SH.best(PRJ / src, o1 - o0)            # đo rung trên bản gốc
         if (p.get("sync") or src == s["a"]) and STAB and SHAKE_CHECK and not Path(src).suffix.lower() in E.IMG_EXT:
             m, x = SH.window(PRJ / src, ss, ss + o1 - o0)
-            if SH.level(m, x) == "RUNG NHẸ": p = dict(p, stab=True, src0=src); src = str(SH.stabilized(PRJ / src))
-        out.append((o0, src, ss, p))
+            if SH.level(m, x) == "RUNG NHẸ": p = dict(p, stab=True, src0=BS(src)); src = str(SH.stabilized(PRJ / BS(src)))
+        out.append((o0, BS(src), ss, p))                           # hình lấy bản đã che biển nếu có; tiếng vẫn từ s["a"] gốc
     return out
 
 def _shots_raw(s, covers=True):
@@ -350,7 +358,7 @@ def capcut(project):
               clear=os.environ.get("CAPCUT_CLEAR") == "1")
 
 if __name__ == "__main__":
-    E.start_cpu_watch(PRJ / "work/cpu_watch.log", 50)      # luật máy: trần 500% CPU suốt job
+    E.start_cpu_watch(PRJ / "work/cpu_watch.log")      # luật máy: trần 70% CPU (E365_CPU) suốt job
     print(f"render {W}x{H} ({'CAPCUT ' + CAPCUT if CAPCUT else 'BẢN GIAO' if FINAL else 'NHÁP rà'}{' 4K' if min(W, H) >= 2160 else f' {RES}p'})")
     if FINAL and min(W, H) >= 2160:
         lo = [s["a"] for s in SEGS if min(E.probe(PRJ / s["a"])["w"], E.probe(PRJ / s["a"])["h"]) < 2160]

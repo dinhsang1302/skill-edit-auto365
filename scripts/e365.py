@@ -7,7 +7,7 @@ Chạy được trên macOS (Apple Silicon) và Windows (GPU NVIDIA). Tự nhậ
 
 Làm gì:
   - VReader: giải mã bằng phần cứng + scale ngay trên GPU về đúng cỡ cần, grade trên frame nhỏ.
-  - Encoder: nhận frame RGB từ python, nháp encode GPU / bản giao libx264 ít luồng (giữ trần 50% CPU máy).
+  - Encoder: nhận frame RGB từ python, nháp encode GPU / bản giao libx264 ít luồng (giữ trần 70% CPU máy).
   - Word / layout_line: chữ động (đậm trồi lên qua mask, nghiêng trượt ngang + fade), có kẹp vùng an toàn chống tràn khung.
   - cap_img: phụ đề PNG (Pillow, KHÔNG dùng libass), tự bẻ 2 dòng, tự thu cỡ khi quá rộng.
   - boxes_overlap / check_layout: soát chữ đè chữ, phụ đề đè chữ động, CTA sát phụ đề trước khi render.
@@ -99,8 +99,9 @@ def probe(path):
                 bits=10 if "10" in pf else 8, chroma="422" if "422" in pf else ("444" if "444" in pf else "420"),
                 brand=j["format"].get("tags", {}).get("major_brand", ""))
 
-def start_cpu_watch(log, pct=50):
+def start_cpu_watch(log, pct=None):
     """Bật canh CPU cho tiến trình hiện tại (đo mỗi 60 s, vượt trần → tạm dừng ffmpeg 15 s). Tự dừng khi job xong."""
+    pct = pct or float(os.environ.get("E365_CPU", "70"))   # trần CPU máy (anh nâng lên 70% ngày 19/11/2026)
     kw = dict(creationflags=0x00000200 | 0x08000000) if IS_WIN else dict(start_new_session=True)   # nhóm riêng, không cửa sổ
     subprocess.Popen([sys.executable, str(ROOT / "scripts/cpu_watch.py"), str(os.getpid()), str(log), str(pct)],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kw)

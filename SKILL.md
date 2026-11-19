@@ -46,6 +46,14 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
 Đọc: `references/style.md` (nhận diện style) → `references/quy-trinh.md` (quy trình bắt buộc, CPU, luật nội dung) → `references/loi-da-gap.md`.
 1. **Soát nguồn**: `<python> scripts/qc.py <file>`, contact sheet 1 fps `<python> scripts/contact_sheet.py <out.jpg> <file> 1 6` rồi **xem ảnh**;
    tìm lỗi video AI (tay, chữ, logo méo) → cắt hình giữ tiếng, phủ insert. Ghi danh mục tư liệu vào `brief.md`.
+1b. **Che biển số (bắt buộc khi thấy biển)** (anh chốt 19/11/2026): mọi cảnh thấy biển số — xe chính và xe khác nếu đọc được, kể cả số sơn trên
+   thân xe van — đều che **trước khi dựng**, trong đúng khoảng nguồn được dùng. Chép `scripts/bienso/*` vào `projects/X/work/plates/`, chạy tại đó:
+   `sheet.py <n>…` (tìm clip có biển, **xem ảnh**) → `grid.py`/`fine.py` (đọc toạ độ 4 góc ở 1 khung mồi) → điền `tracks.py`
+   (id, clip, giây mồi, 4 góc, khoảng giây nguồn, `plate`|`patch`, độ mềm cho xe nền mất nét) → `track.py <id>…` (bám LK flow + homography)
+   → `render.py <n>…` → `insert_bs/`, `input_bs/` (cùng độ phân giải/fps/số khung, giữ tiếng) → `qc.py <id>…` và **xem ảnh** tới khi không lộ chữ, tấm che
+   không trôi. Kiểu che: biển trắng trơn bo góc, viền xám mảnh, rộng hơn biển ~8 %, màu trắng theo ánh sáng tại chỗ, có nhiễu hạt; số sơn trên thân xe →
+   `patch` (tô màu thân xe lấy theo hàng). `build.py` (hàm `BS()`) tự dùng bản `_bs` cho hình — mốc, đo rung, tiếng giữ nguyên; CapCut cũng nhận bản đã che.
+   Khoảng cần che lấy từ `shots_of()` (khúc người nói `sync` → che hết khúc keep). Dò tự động (gói ONNX) chưa cài được → chấm tay 4 góc.
 2. **Transcript**: `<python> scripts/transcribe.py <file> <dự án>/work/words.json`, hiệu đính tay tên sản phẩm, W/K/lm, cos/pha
    (bảng lỗi nhận giọng trong `quy-trinh.md`); từ không chắc → hỏi người dùng. Gợi ý phụ đề: `scripts/words_to_caps.py`.
 3. **Nghe lại, bỏ LẶP / VẤP (tự làm, không đợi người dùng nhắc)**:
@@ -92,7 +100,8 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    Soát tự động phải qua: tràn khung, đè phụ đề, **chữ đè đầu/vai người** (YuNet, `FACE_CHECK`), mối cắt chưa trám, chữ không đủ thời gian đứng,
    **chèn rung**, **người nói liền mạch quá lâu**. Contact sheet bản nháp → **xem ảnh**; **`<python> scripts/stutter.py --check <bản nháp>`** phải ĐẠT
    (CHƯA ĐẠT → thêm vào `cuts`, xuất `VER` mới). Gửi bản nháp cho người dùng duyệt. Bước dự kiến > 5 phút → báo trước.
-6. **Duyệt xong → ĐƯA VÀO CAPCUT (không xuất file ghép)**: người dùng tạo 1 project trống trong CapCut, đặt tên, **tắt CapCut**, rồi
+6. **Duyệt xong → ĐƯA VÀO CAPCUT (không xuất file ghép)** — **CHỈ khi người dùng nói đã duyệt bản nháp 720p và bảo đưa vào CapCut; KHÔNG tự đưa**
+   (anh chốt 19/11/2026). Người dùng tạo 1 project trống trong CapCut, đặt tên, **tắt CapCut**, rồi
    `CAPCUT="<tên project>" <python> projects/X/work/build.py` (cần CapCut MCP `~/capcut-mcp-macos` hoặc `~/capcut-mcp-windows`; project đã có nội dung →
    từ chối, `CAPCUT_CLEAR=1` để ghi đè, bản cũ được sao lưu). Track:
    **MC** (clip người dẫn đã cắt lặp/vấp, **tắt tiếng**, chạy liền bên dưới) · **CHÈN** (nguồn chèn gốc, zoom = keyframe; cảnh card = clip dựng sẵn) ·
@@ -110,7 +119,7 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
 ## Luật không thương lượng
 Không bịa thông số (chỉ lời đọc đã xác nhận / in trên hộp / fact sheet, kèm chip nguồn). Ảnh AI chỉ minh hoạ, không làm bằng chứng
 (hộp, beam, trước/sau, xe khách phải là ảnh thật — thiếu thì xin). Không gắn nhiệt độ màu khi chưa xác nhận. Không nhạc/SFX không rõ giấy phép.
-Trần CPU 50% máy, render từng đoạn tuần tự (`e365.start_cpu_watch`).
+Trần CPU 70% máy (E365_CPU, nâng 19/11/2026), render song song PAR=4 (`e365.start_cpu_watch`).
 
 ## Code
 | File | Vai trò |
@@ -123,6 +132,7 @@ Trần CPU 50% máy, render từng đoạn tuần tự (`e365.start_cpu_watch`).
 | `scripts/transcribe.py`, `words_to_caps.py` | Nhận giọng tiếng Việt từng từ (Mac mlx-whisper / Windows faster-whisper CUDA), gợi ý phụ đề |
 | `scripts/denoise.py` | Tự cài DeepFilterNet 0.5.6 (kiểm SHA-256) + lọc tạp âm giọng (siêu mạnh / `--soft`) |
 | `scripts/shake.py` | Đo rung, chọn khúc ít rung cho shot chèn (cache `work/shake`); `--stab` chống rung tay khi cần (build không tự dùng) |
+| `scripts/bienso/` | Che biển số: `sheet`/`grid`/`fine` (tìm + đọc góc), `tracks.py` (khai báo), `track` (bám phối cảnh), `render` (→ `insert_bs/`, `input_bs/`), `qc` |
 | `scripts/capcut_export.py` | Đưa bản dựng vào project CapCut theo track (MC / CHÈN / CHỮ MOV trong suốt / VOICE / NHẠC / SFX) |
 | `scripts/stutter.py` | Nghe sâu (lộ lời whisper giấu) + dò lặp / nói lại / vấp / ngừng dài → `cuts.json`; `--check <bản giao>` soát cuối |
 | `scripts/data/face_detection_yunet_2023mar.onnx` | Nhận diện mặt (OpenCV YuNet, MIT) cho soát chữ đè đầu/vai |
