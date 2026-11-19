@@ -87,6 +87,12 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
      kính mép đỏ, panel trắng header đỏ có thanh đo, 1 vệt đỏ mảnh chân khung. Mẫu đầy đủ 14 cảnh: `examples/anim_minh_hoa_sang/`.
      Clip đặt trong `work/anim_light/` → chữ kin tự đổi theme **"paper"** (chữ đen, keyword hộp đỏ chữ trắng); đoạn người dẫn giữ chữ trắng.
      Ảnh nền: Codex, prompt "photorealistic full-frame, bright, red/white/black accents, no text/logo/plate", đo kính bằng lưới 100 px, preview 6 khung/cảnh.
+   - **Diễn hoạt 3D có tracking (từ 1.6.1, anh duyệt 19/11/2026 — mẫu `examples/anim_3d/uv3d.py`, cảnh chống UV)**: máy quay ảo lia/xoay nhẹ + tiến vào
+     (homography K·R·K⁻¹ áp lên ảnh nền); **mọi hiệu ứng đi chung phép chiếu đó** (tracking). Mặt kính = mặt phẳng (4 góc → homography): lớp phim
+     (lưới tổ ong), vòng sóng, vệt bóng lướt chiếu lên đúng mặt kính theo phối cảnh, cắt theo đa giác kính. Tia: chùm thuôn (nhỏ ở xa, to gần máy),
+     lõi sáng + quầng, vệt sáng dài trôi chậm dọc tia (không chấm tròn), chạm kính → loé nhỏ + tia dội ngược. **Tốc độ tia: bay tới kính ~1,6 s**
+     (anh chê nhanh → chậm thêm 1/3); tia đã bay sẵn trước khung đầu để chạm kính đúng mốc lời. Clip dài (`DUR=10`) → mỗi ~2,6 s một đợt tia.
+     **Không răng cưa/vỡ nét**: dựng 2× (3840×2160), nét `cv2.LINE_AA` + toạ độ `shift=2`, thu về 1080p `INTER_AREA`, x264 crf 12. Soi khung 100 % trước khi giao.
      Thoại không nói số → cảnh không có số/thanh đo.
    - **Hình minh hoạ: dùng tư liệu có sẵn trước** — ảnh/clip trong `insert/`, b-roll, frame đẹp trích từ chính clip (ảnh hộp, sản phẩm, cận chi tiết).
      **Codex là tuỳ chọn**: kiểm `codex --version` (hoặc `where codex` trên Windows); **máy không có Codex CLI hoặc chưa đăng nhập → bỏ qua, không cài, không hỏi,

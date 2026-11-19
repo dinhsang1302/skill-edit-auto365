@@ -57,3 +57,4 @@ Soát mỗi job. Lọc từ bảng lỗi của xưởng (các job Auto365/VF3/Ma
 | Minh hoạ nền tối kiểu điện ảnh / phông trắng trơn chừa chữ — anh không muốn | Corolla v6–v7 (19/11/2026) | Ảnh render kín khung sáng tone đỏ–trắng–đen + `fx_light.py`; chữ kin theme "paper" trên cảnh sáng |
 | Sóng nhiệt/UV uốn lượn "lăng quăng" | Corolla (19/11/2026) | `fx_light.RAYS=True`: tia thẳng bay chậm, đốm sáng trôi dọc tia |
 | Biển xe nền bị xe chính chạy ngang che dần → tracker trôi, tấm che đè lên xe phía trước, lộ mép biển | Corolla C8680 (19/11/2026) | Dừng bám ở khung bị che; đoạn che dần: so mẫu phần biển còn thấy (matchTemplate) để lấy vị trí, lưu `clipx` (mép xe phía trước) vào npz → `bienso/render.py` không vẽ bên trái mép đó |
+| Hoạt hình 2D phẳng, tia bay nhanh, nét răng cưa | Corolla (19/11/2026) | Diễn hoạt 3D có tracking (`examples/anim_3d/uv3d.py`): máy quay ảo + hiệu ứng chiếu lên mặt phẳng kính, tia bay ~1,6 s, dựng 2× + LINE_AA rồi thu nhỏ |
