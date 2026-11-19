@@ -48,7 +48,8 @@ CAP = dict(size=56 if H > W else 66, font=E.F_CAPTION, y=int(H * 0.66) if H > W 
 MUSIC = "auto"                                              # "auto" tự chọn nhạc có giấy phép (scripts/music.py) · "auto:drive" theo mood tech/drive/groove/warm · đường dẫn file · None
 MUSIC_GAIN = 0.22
 SFX_WHOOSH = None                                           # vd. "whoosh/Transitions SFX_13.wav" (tính từ assets/sfx) — chỉ ở chuyển cảnh lớn; bảng chuẩn: assets/sfx/QUY_TAC_SU_DUNG.md
-DENOISE = "strong"                                          # lọc tạp âm giọng: "strong" siêu mạnh · "soft" giọng nhỏ/xa · None tắt
+DENOISE = "auto"                                            # lọc tạp âm: "auto" tự chọn mức theo nền ồn từng file (mặc định từ 1.6) · "strong" · "soft" · None
+LIGHT_SRC = "/anim_light/"                                  # shot minh hoạ nền sáng (fx_light) nằm ở đây → chữ kin tự đổi theme "paper"
 SHAKE_CHECK = os.environ.get("SHAKE_CHECK", "1") == "1"    # soát rung (tắt chỉ cho hình tổng hợp như demo testsrc2)
 STAB = False                                                # anh chốt 18/11: KHÔNG tự chống rung — anh bấm chống rung trong CapCut; build chỉ in mốc MC rung để anh biết
 MC_MAX = 8.0                                                # giây tối đa chỉ thấy người nói liền một mạch → quá thì build chặn: chèn thêm nguồn quay
@@ -104,11 +105,11 @@ for _s in SEGS:
 def seg_len(s): return E.keep_len(s["keep"], FPS)
 def s2o(s, t): return E.src2out(s["keep"], t)
 
-def kin_placed(s):
-    L = seg_len(s); res = []
+def kin_placed(s, theme=None):
+    L = seg_len(s); res = []; theme = theme or THEME
     for ln in s.get("kin", []):
         t_out = s2o(s, ln["end"]) if ln["end"] else L - E.Word.OUT - 0.05   # xuống hết trước khi cắt cảnh
-        ws = [E.Word(txt, sty, size, s2o(s, t), t_out, slide=-1 if i % 2 == 0 else 1, theme=THEME)
+        ws = [E.Word(txt, sty, size, s2o(s, t), t_out, slide=-1 if i % 2 == 0 else 1, theme=theme)
               for i, (t, txt, sty, size) in enumerate(ln["words"])]
         pl = E.layout_line(ws, ln["y"], W, H, ln["x"], ln["align"])
         res.append((pl, min(w.t_in for w in ws), max(w.t_out for w in ws) + E.Word.OUT))
@@ -258,6 +259,7 @@ def check(s):
 def render_seg(s, path, only=None, text=True):
     """only=(a,b): chỉ render khoảng đó của đoạn (cảnh card cho CapCut); text=False: không vẽ chữ/phụ đề."""
     L = seg_len(s); caps = caps_of(s) if text else []; kins = kin_placed(s) if text else []
+    kins_lt = kin_placed(s, "paper") if text else []         # cùng bố cục, màu cho cảnh minh hoạ nền sáng
     a0, b0 = only or (0, L); N = round((b0 - a0) * FPS)
     enc = E.Encoder(path, W, H, FPS, final=FINAL or bool(CAPCUT)); shots = shots_of(s); rd = None; cur = -1
     for i in range(N):
@@ -274,7 +276,7 @@ def render_seg(s, path, only=None, text=True):
         kin_on = any(a <= t <= b for _, a, b in kins)
         for a, b, im in caps:                               # phụ đề nhường chỗ khi chữ động hiện (tránh đè)
             if a <= t < b and not kin_on: E.paste_scaled(fr, im, W / 2, CAP["y"], E.pop_scale(t - a))
-        for pl, _, _ in kins:
+        for pl, _, _ in (kins_lt if LIGHT_SRC in str(src) else kins):
             for w, x, y in pl: w.draw(fr, t, x, y)
         enc.write(fr)
     rd.close(); enc.close()
@@ -317,7 +319,34 @@ def stems(has_sfx, total):
         if k == "sfx" and not has_sfx: continue
         res[k] = d / f"{k}.wav"
         E.run(["ffmpeg", "-y", "-v", "error", "-i", OUT / f, "-af", f"volume={g:.2f}dB,alimiter=limit=0.84", "-ar", "48000", res[k]])
+    res["gain"] = g
     return res
+
+def voice_pieces(starts, g):
+    """Giọng cho CapCut theo TỪNG KHÚC keep (anh chốt 19/11/2026): mỗi khúc = 1 clip trỏ vào file giọng ĐẦY ĐỦ của nguồn
+    (đã lọc tạp âm + cùng mức gain như bản mix), điểm vào = mốc keep → trong CapCut kéo dài được cùng clip MC."""
+    d = PRJ / "work/capcut"; out, done = [], {}
+    for s, s0 in zip(SEGS, starts):
+        a_src = s["a"]
+        if a_src not in done:                               # cùng xử lý như cut_voice (highpass, chuẩn -17 LUFS theo các khúc dùng, nén nhẹ) + gain mix
+            src = E.voice_source(PRJ / a_src, OUT / "denoise", DENOISE)
+            pcs = [(a, b) for x in SEGS if x["a"] == a_src for a, b in x["keep"] if a is not None]
+            tmp = d / f"_lv_{Path(a_src).stem}.wav"
+            tr = ";".join(f"[0:a]atrim={a:.3f}:{b:.3f},asetpts=PTS-STARTPTS[a{i}]" for i, (a, b) in enumerate(pcs))
+            E.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-filter_complex",
+                   f"{tr};{''.join(f'[a{i}]' for i in range(len(pcs)))}concat=n={len(pcs)}:v=0:a=1,highpass=f=90[o]", "-map", "[o]", tmp])
+            vol = -17 - E.loudness(tmp)[0] + g; os.remove(tmp)
+            f = d / f"voice_{Path(a_src).stem}_{zlib.crc32(f'{src}{pcs}{vol:.2f}'.encode()):08x}.wav"
+            if not f.exists():
+                E.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-af", f"highpass=f=90,volume={vol:.2f}dB,acompressor=threshold=-20dB:ratio=2.5:"
+                       "attack=8:release=120,alimiter=limit=0.84", "-ar", "48000", "-ac", "2", f])
+            done[a_src] = f
+        o = 0.0
+        for a, b in s["keep"]:
+            dd = b if a is None else b - a
+            if a is not None: out.append(dict(path=done[a_src], start=s0 + o, dur=dd, ss=a))
+            o += dd
+    return out
 
 def capcut(project):
     """Đưa vào CapCut theo track (scripts/capcut_export.py). Không xuất file ghép."""
@@ -345,16 +374,21 @@ def capcut(project):
                                   z=punch.get(round(o0, 3), p.get("z", (1, 1))), c=p.get("c", (.5, .5)), wh=wh(f)))
         add(base, "MC")                              # người nói chạy liền bên dưới (xoá chèn vẫn còn hình)
         add(full, "CHÈN")
-        for j, (pl, a, b) in enumerate(kin_placed(s)):     # chữ animation → MOV trong suốt, cắt gọn theo khung chữ
+        sh_ = shots_of(s)
+        def light_at(t):                                    # cảnh dưới chữ lúc chữ hiện là minh hoạ nền sáng?
+            k = max(j for j, x in enumerate(sh_) if x[0] <= t + 1e-6); return LIGHT_SRC in str(sh_[k][1])
+        kd, kl = kin_placed(s), kin_placed(s, "paper")
+        for j, (pl, a, b) in enumerate(kd):                 # chữ animation → MOV trong suốt, cắt gọn theo khung chữ
+            th = "paper" if light_at(a + 0.3) else THEME; pl = kl[j][0] if th == "paper" else pl
             x0, y0, x1, y1 = map(int, E.line_box(pl)); pad = 24
             x0, y0, x1, y1 = max(0, x0 - pad) & ~1, max(0, y0 - pad) & ~1, min(W, x1 + pad), min(H, y1 + pad)
             bw, bh = (x1 - x0) // 2 * 2, (y1 - y0) // 2 * 2
             txt = " ".join(w.text for w, _, _ in pl)
-            f = d / f"chu_{s['id']}_{j}_{zlib.crc32((txt + str((a, b, x0, y0, THEME))).encode()):08x}.mov"
+            f = d / f"chu_{s['id']}_{j}_{zlib.crc32((txt + str((a, b, x0, y0, th))).encode()):08x}.mov"
             if not f.exists():
                 CC.alpha_mov(f, bw, bh, FPS, b - a + 0.04, lambda c, t, pl=pl, a=a, x0=x0, y0=y0: [w.draw(c, a + t, x - x0, y - y0) for w, x, y in pl])
             texts.append(dict(path=f, start=s0 + a, dur=b - a + 0.04, box=(x0, y0, x0 + bw, y0 + bh)))
-    CC.export(CAPCUT, W, H, FPS, clips, texts, st["voice"], st.get("music") if MUSIC else None, st.get("sfx"),
+    CC.export(CAPCUT, W, H, FPS, clips, texts, voice_pieces(starts, st["gain"]), st.get("music") if MUSIC else None, st.get("sfx"),
               clear=os.environ.get("CAPCUT_CLEAR") == "1")
 
 if __name__ == "__main__":

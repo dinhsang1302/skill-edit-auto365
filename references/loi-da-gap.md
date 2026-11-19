@@ -50,3 +50,10 @@ Soát mỗi job. Lọc từ bảng lỗi của xưởng (các job Auto365/VF3/Ma
 | Bộ soát mặt (YuNet) bắt cả người trong cảnh chèn → báo chữ đè mặt oan | Ford Everest (19/11/2026) | Dời chữ sang bên kia hoặc đổi chèn; không tắt FACE_CHECK |
 | Sửa `build.py` hay `e365.py` → render lại TẤT CẢ đoạn (hash đoạn gồm cả mã nguồn) | Ford Everest v3 (19/11/2026) | Bình thường; báo trước thời gian (~9 phút cho 172 s, PAR=4, nguồn 4K) |
 | Tự đưa vào CapCut khi chưa được duyệt | Anh chốt 19/11/2026 | Chỉ đưa vào CapCut khi anh nói đã duyệt bản 720p |
+| Câu "khả năng giảm nhiệt và chống tia UV" không có minh hoạ (chỉ cảnh thi công) | Corolla v3 (19/11/2026) | Rà minh hoạ mức HIGH: mọi câu tính năng/hiệu quả/vị trí kính đều có render + animation |
+| Mất chữ "trọng" trong "rất quan trọng" (0:53) — mốc cắt rơi đúng đầu chữ | Corolla v3 (19/11/2026) | Đo năng lượng quanh mọi điểm cắt cuối khúc; CapCut tách voice theo khúc để người dùng tự kéo bù |
+| Hoạt hình lỗi khi lớp phim quét bắt đầu ngoài mép trái (x < 0) | Corolla v4 (19/11/2026) | `poly_mask` bỏ qua x_cut ≤ 0 |
+| Giọng méo vì lọc tạp âm siêu mạnh cho mọi file | Corolla v8 (19/11/2026) | `DENOISE="auto"`: đo nền ồn từng file, giới hạn suy giảm = nền ồn + 52 dB (≤ 28), pf/gate nhẹ chỉ khi ồn nhiều |
+| Minh hoạ nền tối kiểu điện ảnh / phông trắng trơn chừa chữ — anh không muốn | Corolla v6–v7 (19/11/2026) | Ảnh render kín khung sáng tone đỏ–trắng–đen + `fx_light.py`; chữ kin theme "paper" trên cảnh sáng |
+| Sóng nhiệt/UV uốn lượn "lăng quăng" | Corolla (19/11/2026) | `fx_light.RAYS=True`: tia thẳng bay chậm, đốm sáng trôi dọc tia |
+| Biển xe nền bị xe chính chạy ngang che dần → tracker trôi, tấm che đè lên xe phía trước, lộ mép biển | Corolla C8680 (19/11/2026) | Dừng bám ở khung bị che; đoạn che dần: so mẫu phần biển còn thấy (matchTemplate) để lấy vị trí, lưu `clipx` (mép xe phía trước) vào npz → `bienso/render.py` không vẽ bên trái mép đó |

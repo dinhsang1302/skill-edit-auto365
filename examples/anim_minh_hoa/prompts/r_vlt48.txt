@@ -1,0 +1,4 @@
+Use your built-in image_gen tool to generate a NEW image (no input image).
+Subject: view from inside a modern compact SUV cabin looking out through the front windshield on a bright sunny day: dashboard and steering wheel in soft shadow at the bottom, the windshield has a light neutral tint film so the outside road and trees are clearly visible but the harsh sunlight is softened. The sun is in the UPPER-LEFT part of the windshield with a gentle flare. Clean modern interior, black and dark-red leather.
+Photorealistic 3D render / high-end automotive commercial still, cinematic lighting, sharp detail, 16:9 landscape, at least 1536 px wide. Composition: main subject in the LEFT 60% of the frame; the RIGHT third is darker, calm negative space (for overlay text added later). No text, no numbers, no labels, no logos, no brand badges, no license plate, no watermark.
+Save the final image in the current working directory as r_vlt48.png and print its path.

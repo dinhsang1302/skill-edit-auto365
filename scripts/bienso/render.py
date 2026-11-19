@@ -22,7 +22,7 @@ def plate_tex(w,h,col):
     return img,a.astype(np.float32)/255
 def expand(q,k):
     c=q.mean(0); return c+(q-c)*k
-def draw(fr,q,style,state,key):
+def draw(fr,q,style,state,key,clip=None):
     x0,y0=np.floor(q.min(0)).astype(int)-8; x1,y1=np.ceil(q.max(0)).astype(int)+8
     X0,Y0,X1,Y1=max(0,x0),max(0,y0),min(W,x1),min(H,y1)
     if X1<=X0 or Y1<=Y0: return
@@ -49,6 +49,7 @@ def draw(fr,q,style,state,key):
         im=np.repeat(rows[:,None,:],X1-X0,1); A=cv2.GaussianBlur(mk.astype(np.float32)/255,(0,0),2.5)
     sg=SOFT.get(key,0)
     if sg: im=cv2.GaussianBlur(im,(0,0),sg); A=cv2.GaussianBlur(A,(0,0),sg)
+    if clip is not None and not np.isnan(clip): A[:, :max(0, min(A.shape[1], int(clip * W / 1920) - X0))] = 0   # xe phía trước che biển: không vẽ đè lên xe
     A=cv2.GaussianBlur(A,(0,0),1.2)[...,None]
     im=im+np.random.normal(0,2.2 if style=="plate" else 1.2,im.shape).astype(np.float32)
     fr[Y0:Y1,X0:X1]=np.clip(roi*(1-A)+im*A,0,255).astype(np.uint8)
@@ -58,7 +59,7 @@ def run(n):
     trs=[]
     for t in TR:
         if t[1]!=n: continue
-        z=np.load(f"trk/{t[0]}.npz"); trs.append((t[0],int(z["k0"]),z["Q"]*(W/1920),str(z["style"])))
+        z=np.load(f"trk/{t[0]}.npz"); trs.append((t[0],int(z["k0"]),z["Q"]*(W/1920),str(z["style"]),z["clipx"] if "clipx" in z.files else None))
     dec=subprocess.Popen(["ffmpeg","-v","error",*(["-hwaccel","cuda"] if _s.platform=="win32" else ["-hwaccel","videotoolbox"]),"-i",str(f),"-f","rawvideo","-pix_fmt","bgr24","-"],stdout=subprocess.PIPE,bufsize=W*H*3)
     enc=subprocess.Popen(["ffmpeg","-v","error","-y","-f","rawvideo","-pix_fmt","bgr24","-s",f"{W}x{H}","-r",str(fps_of(f)),"-i","-","-i",str(f),
         "-map","0:v","-map","1:a:0",*ENC,
@@ -68,10 +69,10 @@ def run(n):
         b=dec.stdout.read(W*H*3)
         if len(b)<W*H*3: break
         fr=np.frombuffer(b,np.uint8).reshape(H,W,3).copy()
-        for tid,k0,Q,style in trs:
+        for tid,k0,Q,style,CX in trs:
             i=k-k0
             if 0<=i<len(Q) and not np.isnan(Q[i]).any():
-                draw(fr,expand(Q[i],1.08 if style=="plate" else 1.15),style,st,tid)
+                draw(fr,expand(Q[i],1.08 if style=="plate" else 1.15),style,st,tid,None if CX is None else CX[i])
         enc.stdin.write(fr.tobytes()); k+=1
     enc.stdin.close(); enc.wait(); dec.wait()
     if enc.returncode: raise SystemExit(f"encode lỗi {n}")

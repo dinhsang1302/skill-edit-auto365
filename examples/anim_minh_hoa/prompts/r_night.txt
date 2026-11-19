@@ -1,0 +1,4 @@
+Use your built-in image_gen tool to generate a NEW image (no input image).
+Subject: night driving, view from the driver's seat of a modern compact crossover SUV toward the LEFT front side window and the left side mirror: dark street outside with orange street lights and blurred headlights reflected in the mirror, the side glass slightly tinted, dashboard edge softly lit. Moody, low light but readable.
+Photorealistic 3D render / high-end automotive commercial still, cinematic lighting, sharp detail, 16:9 landscape, at least 1536 px wide. Composition: main subject in the LEFT 60% of the frame; the RIGHT third is darker, calm negative space (for overlay text added later). No text, no numbers, no labels, no logos, no brand badges, no license plate, no watermark.
+Save the final image in the current working directory as r_night.png and print its path.

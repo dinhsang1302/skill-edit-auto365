@@ -5,6 +5,7 @@ Lọc được cả tiếng người nói lẫn phía sau; ffmpeg afftdn chỉ t
 Dùng (từ thư mục làm việc):
   <python> scripts/denoise.py --install                 tải đúng bản cho máy vào bin/ (kiểm SHA-256) — setup tự gọi
   <python> scripts/denoise.py <file> [out.wav]          lọc SIÊU MẠNH (mặc định) → <tên file>_denoise.wav cạnh file gốc
+  <python> scripts/denoise.py <file> [out.wav] --auto   TỰ CHỌN mức theo nền ồn từng file (khuyên dùng, chốt 19/11/2026)
   <python> scripts/denoise.py <file> [out.wav] --soft   lọc VỪA cho giọng thu nhỏ/xa (nâng -20 LUFS trước, không gate)
 Trong build: e365.voice_source(...) tự gọi và cache (DENOISE trong build_template.py).
 
@@ -104,9 +105,33 @@ def _lufs(f):
     return float(v[-1].split()[1]) if v else -23.0
 
 
-def denoise(src, out=None, soft=False, quiet=False):
-    """Lọc giọng của file (video hoặc audio). Mặc định siêu mạnh; soft=True lọc vừa. Trả đường dẫn wav 48 kHz stereo."""
+def measure(src):
+    """Đo nền ồn (bách phân vị 10 các khung 50 ms) và mức giọng (bách phân vị 95), dBFS. Trả (noise, speech)."""
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", str(src), "-vn", "-ac", "1", "-ar", "16000", "-f", "f32le", "-"], capture_output=True, check=True).stdout
+    a = np.frombuffer(r, np.float32); n = len(a) // 800
+    if n < 10: return -60.0, -12.0
+    db = 20 * np.log10(np.sqrt((a[:n * 800].reshape(n, 800) ** 2).mean(1)) + 1e-9)
+    return float(np.percentile(db, 10)), float(np.percentile(db, 95))
+
+
+def auto_level(src):
+    """Tự chọn cường độ lọc theo từng file (anh chốt 19/11/2026: không lọc mạnh hết — méo tiếng; còn ồn nhẹ cũng được).
+    Mục tiêu: nền ồn sau lọc ~-52 dBFS → giới hạn suy giảm atten = noise + 52 (kẹp 0–28 dB); không gate cứng.
+    Trả dict(atten, pf, gate, noise, snr); atten < 6 → bỏ qua lọc (file đã sạch)."""
+    nf, sp = measure(src); at = round(min(28.0, max(0.0, nf + 52)))
+    return dict(atten=at, pf=0.04 if at >= 22 else 0.0, gate=at >= 24, noise=round(nf, 1), snr=round(sp - nf, 1))
+
+
+def denoise(src, out=None, soft=False, quiet=False, auto=False):
+    """Lọc giọng của file (video hoặc audio). Mặc định siêu mạnh; soft=True lọc vừa; auto=True tự chọn mức theo nền ồn từng file
+    (khuyên dùng). Trả đường dẫn wav 48 kHz stereo."""
     src = Path(src); out = Path(out) if out else src.with_name(src.stem + "_denoise.wav")
+    if auto:
+        lv = auto_level(src)
+        if not quiet or True: print(f"  {src.name}: nền ồn {lv['noise']} dBFS, SNR {lv['snr']} dB → giảm tối đa {lv['atten']} dB"
+                                   f"{', pf' if lv['pf'] else ''}{', gate nhẹ' if lv['gate'] else ''}", flush=True)
+        if lv["atten"] < 6:
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vn", "-ar", str(SR), "-ac", "2", "-c:a", "pcm_s16le", str(out)], check=True); return out
     exe = binary() or install()
     with tempfile.TemporaryDirectory() as td:
         td = Path(td); x = td / "x_48k.wav"
@@ -116,12 +141,14 @@ def denoise(src, out=None, soft=False, quiet=False):
             pre = ["-af", f"volume={-20 - _lufs(td / 'raw.wav'):.2f}dB"]; srcx = td / "raw.wav"
         else: srcx = src
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(srcx), "-vn", *pre, "-ar", str(SR), "-ac", "2", "-c:a", "pcm_s16le", str(x)], check=True)
-        args = ["-a", "24", "--pf", "--pf-beta", "0.03"] if soft else ["--pf", "--pf-beta", "0.15"]
+        if auto: args = ["-a", str(lv["atten"])] + (["--pf", "--pf-beta", str(lv["pf"])] if lv["pf"] else [])
+        else: args = ["-a", "24", "--pf", "--pf-beta", "0.03"] if soft else ["--pf", "--pf-beta", "0.15"]
         (td / "o").mkdir()
         subprocess.run([exe, "-D", *args, "-o", str(td / "o"), str(x)], check=True, capture_output=quiet)
         dfn = td / "o" / x.name; fixed = td / "fixed.wav"
         n = patch_holes(x, dfn, fixed)
-        af = "anull" if soft else "agate=threshold=0.012:ratio=3:range=0.2:attack=20:release=200"
+        if auto: af = "agate=threshold=0.008:ratio=1.5:range=0.6:attack=25:release=300" if lv["gate"] else "anull"
+        else: af = "anull" if soft else "agate=threshold=0.012:ratio=3:range=0.2:attack=20:release=200"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(fixed), "-af", af, "-ar", str(SR), "-c:a", "pcm_s16le", str(out)], check=True)
     if not quiet: print(f"OK {out}  ({'vừa' if soft else 'siêu mạnh'}, vá {n} lỗ 10 ms)")
     return out
@@ -131,4 +158,4 @@ if __name__ == "__main__":
     a = [x for x in sys.argv[1:] if not x.startswith("--")]
     if "--install" in sys.argv: install(); sys.exit()
     if not a: raise SystemExit(__doc__)
-    denoise(a[0], a[1] if len(a) > 1 else None, soft="--soft" in sys.argv)
+    denoise(a[0], a[1] if len(a) > 1 else None, soft="--soft" in sys.argv, auto="--auto" in sys.argv)

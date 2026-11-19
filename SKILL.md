@@ -69,13 +69,25 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    (đổi cỡ khung người nói ngay mối cắt, che cú nhảy hình). Ưu tiên chọn tay insert khớp lời; Codex chỉ là tuỳ chọn.
 4. **Viết `work/build.py`** từ `scripts/build_template.py` (new_project đã chép sẵn): `SEGS` (keep / shots / caps / kin), `NAME`, `W,H,FPS`,
    `THEME="dark"`. Học cách dựng từ `examples/`.
-   - **Giọng tự lọc tạp âm** (`DENOISE="strong"` mặc định = DeepFilterNet siêu mạnh + vá lỗ + gate, cache trong `work/seg/denoise`);
-     giọng thu nhỏ/xa → `"soft"`. Lọc 1 file lẻ: `<python> scripts/denoise.py <file>` → `<tên file>_denoise.wav`. Không chạy 2 lượt.
+   - **Giọng tự lọc tạp âm theo từng file** (`DENOISE="auto"` mặc định từ 1.6, anh chốt 19/11/2026: lọc siêu mạnh hết bị **méo tiếng**):
+     đo nền ồn mỗi file → giới hạn suy giảm DeepFilterNet = nền ồn + 52 dB (kẹp 0–28 dB), post-filter/gate nhẹ chỉ khi ồn nhiều; còn ồn nhẹ cũng được.
+     Build in mức đã chọn cho từng file. Anh chê còn ồn/méo → dịch mục tiêu -52 dBFS. `"strong"`/`"soft"` vẫn còn. Lọc 1 file lẻ:
+     `<python> scripts/denoise.py <file> --auto`. Không chạy 2 lượt.
    - **Nhạc tự chọn** (`MUSIC="auto"`): nhạc người dùng bỏ vào `assets/music` thắng; không có thì bộ Mixkit có giấy phép (setup đã tải),
      chọn theo mood `"auto:tech|drive|groove|warm"` (công nghệ/thông số · chạy xe đêm · thi công cận · khách hàng/kết vui), nối vòng có hoà âm,
      duck theo giọng. Báo tên bài + giấy phép khi giao.
    - **Chữ pop up**: hiện mượt (mask 0,55 s), **đứng yên ≥ 1,2 s** (`Word.HOLD_MIN`), ra mượt 0,35 s; không lên/xuống đột ngột.
      Build báo lỗi nếu chữ không đủ thời gian đứng trong đoạn → cho hiện sớm hơn hoặc gộp dòng, không rút thời gian đứng.
+   - **Rà minh hoạ mức HIGH** (anh chốt 19/11/2026): lập bảng câu thoại → cảnh; câu nào nói **tính năng / hiệu quả** (giảm nhiệt, chống UV, cản nhiệt,
+     riêng tư, tầm nhìn đêm), **thông số** hay **vị trí dán** (kính lái / sườn / hậu / cửa sổ trời) đều có cảnh **ảnh render chân thực + animation**
+     **Thà thừa còn hơn thiếu.**
+   - **Style minh hoạ (từ 1.6, anh chốt 19/11/2026, áp cho mọi dịch vụ)**: ảnh render **realistic KÍN KHUNG, sáng sủa** (showroom/xưởng sáng có
+     đèn đỏ, đường nắng, nội thất sáng — **không phông trắng trơn, không mảng trắng chừa chữ**), tone brand **đỏ–trắng–đen** kiểu 3M, xe trắng;
+     hiệu ứng `scripts/fx_light.py`: **tia nhiệt/UV thẳng bay chậm** (không sóng uốn lượn) có mũi tên, khiên bạc chặn + tia dội ngược, phim quét
+     kính mép đỏ, panel trắng header đỏ có thanh đo, 1 vệt đỏ mảnh chân khung. Mẫu đầy đủ 14 cảnh: `examples/anim_minh_hoa_sang/`.
+     Clip đặt trong `work/anim_light/` → chữ kin tự đổi theme **"paper"** (chữ đen, keyword hộp đỏ chữ trắng); đoạn người dẫn giữ chữ trắng.
+     Ảnh nền: Codex, prompt "photorealistic full-frame, bright, red/white/black accents, no text/logo/plate", đo kính bằng lưới 100 px, preview 6 khung/cảnh.
+     Thoại không nói số → cảnh không có số/thanh đo.
    - **Hình minh hoạ: dùng tư liệu có sẵn trước** — ảnh/clip trong `insert/`, b-roll, frame đẹp trích từ chính clip (ảnh hộp, sản phẩm, cận chi tiết).
      **Codex là tuỳ chọn**: kiểm `codex --version` (hoặc `where codex` trên Windows); **máy không có Codex CLI hoặc chưa đăng nhập → bỏ qua, không cài, không hỏi,
      không coi là lỗi**, dựng tiếp bằng tư liệu có sẵn. Máy có Codex mà thật sự thiếu hình minh hoạ thì trong `<dự án>/insert/ai/` chạy
@@ -106,7 +118,8 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    từ chối, `CAPCUT_CLEAR=1` để ghi đè, bản cũ được sao lưu). Track:
    **MC** (clip người dẫn đã cắt lặp/vấp, **tắt tiếng**, chạy liền bên dưới) · **CHÈN** (nguồn chèn gốc, zoom = keyframe; cảnh card = clip dựng sẵn) ·
    **CHỮ 1..n** (chữ animation Claude vẽ, MOV ProRes 4444 trong suốt — **không dùng chữ CapCut, không phụ đề**) · **VOICE** (giọng MC + voice off đã lọc tạp âm,
-   cắt lặp; voice off = file tiếng hoặc video chỉ lấy tiếng) · **NHẠC** (đã duck theo giọng) · **SFX** (nếu có).
+   **tách theo từng khúc keep** — mỗi khúc 1 clip trỏ vào file giọng ĐẦY ĐỦ của nguồn (đã lọc, cùng mức như bản mix), điểm vào = mốc keep, khớp clip MC →
+   người dùng kéo dài được cả MC lẫn giọng nếu lỡ cắt mất chữ; **không xuất 1 file voice liền** (anh chốt 19/11/2026; build `voice_pieces()`)) · **NHẠC** (đã duck theo giọng) · **SFX** (nếu có).
    Không tự thêm chuyển cảnh/hiệu ứng/filter CapCut (người dùng tự thêm). Soát bằng CapCut MCP `capcut_frame` vài mốc trước khi báo.
    Chỉ khi người dùng đòi file ghép: `FINAL=1 VER=n` → 4K HEVC (3840x2160 / 2160x3840).
 
@@ -130,7 +143,8 @@ Trần CPU 70% máy (E365_CPU, nâng 19/11/2026), render song song PAR=4 (`e365.
 | `scripts/e365.py` | Thư viện: `VReader` (tự chọn videotoolbox / NVDEC / CPU), `Encoder`, `Word`/`layout_line` (chữ động, chống tràn), `cap_img` (phụ đề), `check_layout`, `rounded`/`with_shadow`/`cta`/`soft_bg`, `cut_voice`/`loudness`/`final_mix`/`mux`, `STYLES["dark"]` |
 | `scripts/build_template.py` | Mẫu build 1 dự án: SEGS → render tuần tự có cache → âm thanh → bản giao |
 | `scripts/transcribe.py`, `words_to_caps.py` | Nhận giọng tiếng Việt từng từ (Mac mlx-whisper / Windows faster-whisper CUDA), gợi ý phụ đề |
-| `scripts/denoise.py` | Tự cài DeepFilterNet 0.5.6 (kiểm SHA-256) + lọc tạp âm giọng (siêu mạnh / `--soft`) |
+| `scripts/denoise.py` | Tự cài DeepFilterNet 0.5.6 (kiểm SHA-256) + lọc tạp âm giọng (`--auto` theo nền ồn từng file / siêu mạnh / `--soft`) |
+| `scripts/fx_light.py` | Hiệu ứng minh hoạ nền sáng style 3M: tia nhiệt/UV, khiên, tia dội, phim quét, panel thanh đo, vệt đỏ, encode |
 | `scripts/shake.py` | Đo rung, chọn khúc ít rung cho shot chèn (cache `work/shake`); `--stab` chống rung tay khi cần (build không tự dùng) |
 | `scripts/bienso/` | Che biển số: `sheet`/`grid`/`fine` (tìm + đọc góc), `tracks.py` (khai báo), `track` (bám phối cảnh), `render` (→ `insert_bs/`, `input_bs/`), `qc` |
 | `scripts/capcut_export.py` | Đưa bản dựng vào project CapCut theo track (MC / CHÈN / CHỮ MOV trong suốt / VOICE / NHẠC / SFX) |

@@ -1,0 +1,4 @@
+Use your built-in image_gen tool to generate a NEW image (no input image).
+Subject: a white modern compact crossover SUV (generic design, no brand) parked under intense midday sun, seen from the front three-quarter view, windshield clearly visible with a subtle dark tint film. Hot summer atmosphere, strong sun in the UPPER-LEFT corner, slight heat haze above the asphalt. The car sits on the left-center of the frame.
+Photorealistic 3D render / high-end automotive commercial still, cinematic lighting, sharp detail, 16:9 landscape, at least 1536 px wide. Composition: main subject in the LEFT 60% of the frame; the RIGHT third is darker, calm negative space (for overlay text added later). No text, no numbers, no labels, no logos, no brand badges, no license plate, no watermark.
+Save the final image in the current working directory as r_tser56.png and print its path.

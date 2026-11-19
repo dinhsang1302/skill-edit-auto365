@@ -211,6 +211,8 @@ class Encoder:
 STYLES = {
     "dark":  {"w": (F_ANTON, WHITE, None, 0), "k": (F_ANTON, RED, None, 0), "it": (F_PLAYFAIR_IT, WHITE, None, 0)},   # Auto365 nền tối
     "light": {"w": (F_BVP_BLACK, WHITE, INK_BROWN, 3), "k": (F_BVP_BLACK, GOLD, INK_BROWN, 3), "it": (F_PLAYFAIR_IT, WHITE, INK_BROWN, 2)},
+    # "paper": chữ trên cảnh minh hoạ NỀN SÁNG (style brand 3M đỏ–trắng–đen, 19/11/2026): đen đậm, keyword = hộp đỏ chữ trắng, nghiêng đen
+    "paper": {"w": (F_ANTON, INK_DARK, None, 0), "k": (F_ANTON, WHITE, None, 0, RED), "it": (F_PLAYFAIR_IT, INK_DARK, None, 0)},
 }
 
 class Word:
@@ -221,13 +223,20 @@ class Word:
     IN_MASK, IN_SLIDE, OUT, HOLD_MIN = 0.55, 0.80, 0.35, 1.2
     def __init__(self, text, sty, size, t_in, t_out=99, slide=-1, theme="dark", pad=None):
         pad = round(40 * S) if pad is None else pad
-        path, col, ink, sw = STYLES[theme][sty]; f = ImageFont.truetype(str(path), size); sw = round(sw * S)
+        path, col, ink, sw, *box = STYLES[theme][sty]; f = ImageFont.truetype(str(path), size); sw = round(sw * S)
         l, t, r, b = f.getbbox(text, anchor="ls", stroke_width=sw)
         w, h = r - l + 2 * pad, b - t + 2 * pad
-        txt = Image.new("RGBA", (w, h)); ImageDraw.Draw(txt).text((pad - l, pad - t), text, font=f, fill=col + (255,), anchor="ls",
-                                                                stroke_width=sw, stroke_fill=(ink or col) + (255,))
-        shd = Image.new("RGBA", (w, h)); ImageDraw.Draw(shd).text((pad - l, pad - t + 5 * S), text, font=f, fill=(0, 0, 0, 190), anchor="ls",
-                                                                stroke_width=sw + round(2 * S), stroke_fill=(0, 0, 0, 190))
+        txt = Image.new("RGBA", (w, h)); dt = ImageDraw.Draw(txt)
+        shd = Image.new("RGBA", (w, h)); ds = ImageDraw.Draw(shd)
+        if box:                                            # keyword trong hộp màu (theme "paper"): hộp nằm trong pad → không đổi bố cục
+            bx, by = min(pad - 4, round(size * 0.13)), min(pad - 4, round(size * 0.07))
+            rect = (pad - bx, pad - by, w - pad + bx, h - pad + by)
+            dt.rounded_rectangle(rect, round(size * 0.08), fill=box[0] + (255,))
+            ds.rounded_rectangle((rect[0], rect[1] + 6 * S, rect[2], rect[3] + 6 * S), round(size * 0.08), fill=(0, 0, 0, 70))
+        dt.text((pad - l, pad - t), text, font=f, fill=col + (255,), anchor="ls", stroke_width=sw, stroke_fill=(ink or col) + (255,))
+        sa = 60 if theme == "paper" else 190                # chữ tối trên nền sáng: bóng nhẹ, chỉ tách nền
+        if not box: ds.text((pad - l, pad - t + 5 * S), text, font=f, fill=(0, 0, 0, sa), anchor="ls",
+                            stroke_width=sw + round(2 * S), stroke_fill=(0, 0, 0, sa))
         self.img = Image.alpha_composite(shd.filter(ImageFilter.GaussianBlur(8 * S)), txt)
         self.off = (l - pad, t - pad); self.adv = f.getlength(text); self.space = f.getlength(" ")
         self.top, self.bot = t, b                          # so với baseline (t âm)
@@ -456,7 +465,7 @@ def cut_voice(src, keep, D, out, target=-17):
 
 def voice_source(src, cache_dir, mode="strong"):
     """Tiếng giọng đã lọc tạp âm của 1 file nguồn (DeepFilterNet, scripts/denoise.py), cache theo tên+cỡ+mtime file.
-    mode: "strong" (siêu mạnh, mặc định) · "soft" (giọng nhỏ/xa) · None (giữ nguyên). Thiếu deep-filter → báo và dùng tiếng gốc."""
+    mode: "auto" (tự chọn mức theo nền ồn từng file — khuyên dùng) · "strong" (siêu mạnh) · "soft" (giọng nhỏ/xa) · None (giữ nguyên). Thiếu deep-filter → báo và dùng tiếng gốc."""
     if not mode: return src
     src = Path(src); st = src.stat(); cache_dir = Path(cache_dir); cache_dir.mkdir(parents=True, exist_ok=True)
     out = cache_dir / f"{src.stem}_{hashlib.md5(f'{src}{st.st_size}{st.st_mtime}{mode}'.encode()).hexdigest()[:8]}_denoise.wav"
@@ -464,7 +473,7 @@ def voice_source(src, cache_dir, mode="strong"):
     sys.path.insert(0, str(ROOT / "scripts")); import denoise as DN
     if not (DN.binary() or _try(DN.install)):
         print("CẢNH BÁO: chưa có deep-filter → dùng tiếng gốc, chưa lọc tạp âm"); return src
-    DN.denoise(src, out, soft=(mode == "soft"), quiet=True); print(f"lọc tạp âm ({mode}): {src.name} → {out.name}"); return out
+    DN.denoise(src, out, soft=(mode == "soft"), auto=(mode == "auto"), quiet=True); print(f"lọc tạp âm ({mode}): {src.name} → {out.name}"); return out
 
 def _try(f):
     try: return f()

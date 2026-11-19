@@ -5,7 +5,8 @@ Track (mỗi thứ một track để người dùng tự sửa trong CapCut):
   V1 "MC"        clip người dẫn (nguồn gốc / bản đã chống rung) theo từng khúc giữ lại, TẮT TIẾNG
   V2 "CHÈN"      nguồn chèn: b-roll, ảnh, clip trám mối cắt (nguồn gốc, zoom = keyframe); cảnh "card" (khung bo góc + chip) = clip đã vẽ sẵn
   V3+ "CHỮ"      chữ animation Claude tự vẽ, xuất MOV ProRes 4444 nền trong suốt (không dùng text CapCut, không phụ đề)
-  A1 "VOICE"     giọng đã lọc tạp âm + cắt lặp/vấp (cả giọng MC lẫn voice off), chuẩn -17 LUFS
+  A1 "VOICE"     giọng đã lọc tạp âm, TÁCH THEO TỪNG KHÚC GIỮ LẠI (anh chốt 19/11/2026): mỗi khúc là 1 clip trỏ vào file giọng
+                 ĐẦY ĐỦ của nguồn (đã lọc + nâng mức) với điểm vào/ra = mốc keep → kéo dài được cùng clip MC trong CapCut
   A2 "NHẠC"      nhạc nền đã duck theo giọng · A3 "SFX" (nếu có)
 Không tự thêm chuyển cảnh / hiệu ứng / filter CapCut (luật xưởng: người dựng tự thêm). Màu grade của nháp không mang sang.
 
@@ -58,7 +59,8 @@ def _pos(z, c, k):
 
 def export(project, W, H, fps, clips, texts, voice, music=None, sfx=None, clear=False):
     """clips: [dict(layer="MC"|"CHÈN", path, start, dur, ss, z=(z0,z1), c=(cx,cy), wh=(w,h), mute=True)] theo giây timeline.
-    texts: [dict(path=mov, start, dur)]. voice/music/sfx: wav dài bằng timeline."""
+    texts: [dict(path=mov, start, dur)]. voice: [dict(path, start, dur, ss)] theo từng khúc (hoặc 1 wav dài bằng timeline — kiểu cũ).
+    music/sfx: wav dài bằng timeline."""
     edits, ir, Draft = _mcp()
     d = Draft.open(project); data = d.data
     if any(t.get("segments") for t in data["tracks"]):
@@ -92,6 +94,11 @@ def export(project, W, H, fps, clips, texts, voice, music=None, sfx=None, clear=
         edits.update_clip(data, r["clip_id"], scale=1 / min(W / bw, H / bh),
                           position={"x": ((x0 + x1) / 2 - W / 2) / (W / 2), "y": (H / 2 - (y0 + y1) / 2) / (H / 2)})
     na = 0
+    if isinstance(voice, (list, tuple)):                     # giọng theo từng khúc, nguồn đầy đủ → kéo dài được
+        tv = track("audio", "VOICE"); na += 1
+        for v in voice:
+            edits.add_clip(data, str(v["path"]), start=v["start"], duration=v["dur"], source_start=v.get("ss", 0.0), track_index=tv)
+        voice = None
     for f, name in ((voice, "VOICE"), (music, "NHẠC"), (sfx, "SFX")):
         if f:
             edits.add_clip(data, str(f), start=0, track_index=track("audio", name)); na += 1

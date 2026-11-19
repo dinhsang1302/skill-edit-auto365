@@ -84,7 +84,7 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
 7. **Âm thanh**: cắt khoảng lặng > 0,4 s (chừa 0,1 s), fade 12 ms vào / 15 ms ra ở mỗi mối cắt, highpass 90 Hz, chuẩn từng đoạn về -17 LUFS rồi nén nhẹ
    (2,5:1), nhạc duck theo giọng (sidechaincompress threshold 0.03 ratio 6), SFX tiết chế (whoosh ở chuyển cảnh lớn, tick ở số liệu, thump ở reveal/end,
    pop nhẹ ở keyword), bus SFX ~-6 dB dưới giọng. Chuẩn **-14 LUFS, true peak -1,5 dB** (`e365.final_mix`). Clip < 10 s: loudnorm 1 lượt có thể lệch ~±1 LU → đo lại.
-   **Giọng lọc tạp âm trước khi cắt/trộn** (DeepFilterNet, `DENOISE`): 1 lượt siêu mạnh, vá lỗ 10 ms, gate nhẹ; giọng nhỏ dùng `soft`.
+   **Giọng lọc tạp âm trước khi cắt/trộn** (DeepFilterNet, `DENOISE`): mặc định `auto` — mức lọc theo nền ồn từng file (không lọc siêu mạnh hết: méo tiếng), vá lỗ 10 ms; giọng nhỏ dùng `soft`.
    **Nhạc tự chọn** (`MUSIC="auto"`, `scripts/music.py`): nhạc người dùng trong `assets/music` thắng, không có thì bộ Mixkit đã tải; nối vòng có hoà âm 1,5 s.
    Ưu tiên nhạc/SFX trong `assets/`. Chỉ tự tổng hợp khi không có, và phải báo.
    Giấy phép nhạc ghi ở `assets/music/_downloaded/SOURCES.md` (Mixkit Free License: dùng online/quảng cáo online được, không TV/radio).

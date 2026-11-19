@@ -1,0 +1,4 @@
+Use your built-in image_gen tool to generate a NEW image (no input image).
+Subject: extreme macro close-up of the edge of a car window glass with a premium multi-layer optical window film being peeled back at one corner, revealing the film's thin stacked layers (several micro-thin translucent layers in smoky grey, silver and faint blue-cyan sheen, slightly separated at the peeled edge like an exploded view). Warm sunlight from the upper-left corner, light refracting through the glass edge. Dark studio background.
+Photorealistic 3D render / high-end automotive commercial still, cinematic lighting, sharp detail, 16:9 landscape, at least 1536 px wide. Composition: main subject in the LEFT 60% of the frame; the RIGHT third is darker, calm negative space (for overlay text added later). No text, no numbers, no labels, no logos, no brand badges, no license plate, no watermark.
+Save the final image in the current working directory as r_multilayer.png and print its path.

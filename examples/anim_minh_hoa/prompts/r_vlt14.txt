@@ -1,0 +1,4 @@
+Use your built-in image_gen tool to generate a NEW image (no input image).
+Subject: side view of a white modern compact crossover SUV (generic design, no brand) in a sunny city street, its rear side windows and rear windshield have a very dark privacy tint film so the interior cannot be seen from outside, while the front side window is lighter. Sun in the UPPER-LEFT, reflections on the dark glass. Car placed on the left-center of the frame.
+Photorealistic 3D render / high-end automotive commercial still, cinematic lighting, sharp detail, 16:9 landscape, at least 1536 px wide. Composition: main subject in the LEFT 60% of the frame; the RIGHT third is darker, calm negative space (for overlay text added later). No text, no numbers, no labels, no logos, no brand badges, no license plate, no watermark.
+Save the final image in the current working directory as r_vlt14.png and print its path.
