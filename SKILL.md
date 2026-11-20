@@ -138,7 +138,7 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
 ## Luật không thương lượng
 Không bịa thông số (chỉ lời đọc đã xác nhận / in trên hộp / fact sheet, kèm chip nguồn). Ảnh AI chỉ minh hoạ, không làm bằng chứng
 (hộp, beam, trước/sau, xe khách phải là ảnh thật — thiếu thì xin). Không gắn nhiệt độ màu khi chưa xác nhận. Không nhạc/SFX không rõ giấy phép.
-Trần CPU 70% máy (E365_CPU, nâng 19/11/2026), render song song PAR=4 (`e365.start_cpu_watch`).
+Trần CPU **80% tổng máy** (E365_CPU, anh chốt 20/11/2026 — tính theo % máy, không theo số luồng); số đoạn render song song **tự tính** `e365.auto_par()` = luồng × 80% / 4 (i7-14700K → 6, Mac M 10 nhân → 2; ghi đè bằng PAR); `e365.start_cpu_watch` canh trần.
 
 ## Code
 | File | Vai trò |

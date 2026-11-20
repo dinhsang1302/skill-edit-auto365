@@ -391,8 +391,28 @@ def capcut(project):
     CC.export(CAPCUT, W, H, FPS, clips, texts, voice_pieces(starts, st["gain"]), st.get("music") if MUSIC else None, st.get("sfx"),
               clear=os.environ.get("CAPCUT_CLEAR") == "1")
 
+PAR = E.auto_par()                                          # số đoạn render song song: tự tính theo % máy (E365_CPU, mặc định 80%)
+def run_parallel(todo):
+    """Render các đoạn chưa có cache bằng PAR tiến trình con (mỗi con = build.py <id>), rồi trả danh sách file theo thứ tự."""
+    import subprocess as SP, time
+    pend = sorted([s for s in todo if not (OUT / f"seg_{s['id']}_{seg_hash(s)}.mp4").exists()], key=seg_len, reverse=True)
+    env = dict(os.environ, SKIP_CHECK="1", PAR="1", NO_CPU_WATCH="1"); procs = []
+    print(f"render {len(pend)} đoạn, {PAR} đoạn song song (trần CPU {E.CPU_PCT:g}% máy)", flush=True)
+    while pend or procs:
+        while pend and len(procs) < PAR:
+            s = pend.pop(0); procs.append((s["id"], SP.Popen([sys.executable, __file__, s["id"]], env=env, stdout=SP.DEVNULL)))
+        time.sleep(0.5)
+        for x in procs[:]:
+            if x[1].poll() is None: continue
+            procs.remove(x)
+            if x[1].returncode:
+                for _, q in procs: q.kill()
+                raise SystemExit(f"đoạn {x[0]} render lỗi (mã {x[1].returncode})")
+            print("  xong đoạn", x[0], flush=True)
+    return [job(s) for s in todo]
+
 if __name__ == "__main__":
-    E.start_cpu_watch(PRJ / "work/cpu_watch.log")      # luật máy: trần 70% CPU (E365_CPU) suốt job
+    if os.environ.get("NO_CPU_WATCH") != "1": E.start_cpu_watch(PRJ / "work/cpu_watch.log")   # trần % máy (E365_CPU); tiến trình con: cha đã canh
     print(f"render {W}x{H} ({'CAPCUT ' + CAPCUT if CAPCUT else 'BẢN GIAO' if FINAL else 'NHÁP rà'}{' 4K' if min(W, H) >= 2160 else f' {RES}p'})")
     if FINAL and min(W, H) >= 2160:
         lo = [s["a"] for s in SEGS if min(E.probe(PRJ / s["a"])["w"], E.probe(PRJ / s["a"])["h"]) < 2160]
@@ -404,7 +424,7 @@ if __name__ == "__main__":
     only = sys.argv[1:]; todo = [s for s in SEGS if not only or s["id"] in only]
     errs = sum((check(s) + (check_faces(s) if FACE_CHECK else []) for s in todo), [])
     if errs and os.environ.get("SKIP_CHECK") != "1": raise SystemExit("Soát bố cục lỗi:\n  " + "\n  ".join(errs))
-    paths = [job(s) for s in todo]                          # tuần tự, từng đoạn một
+    paths = run_parallel(todo) if PAR > 1 and len(todo) > 1 else [job(s) for s in todo]
     if only: print("\n".join(map(str, paths))); sys.exit()
     E.concat(paths, OUT / "video.mp4")
     lens = [seg_len(s) for s in SEGS]; starts = list(np.cumsum([0] + lens)[:-1]); total = sum(lens)

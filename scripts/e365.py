@@ -99,9 +99,17 @@ def probe(path):
                 bits=10 if "10" in pf else 8, chroma="422" if "422" in pf else ("444" if "444" in pf else "420"),
                 brand=j["format"].get("tags", {}).get("major_brand", ""))
 
+CPU_PCT = float(os.environ.get("E365_CPU", "80"))          # trần CPU = % TỔNG máy (anh chốt 20/11/2026: 80%), máy nào cũng tự cân theo %
+
+def auto_par(per_job=4.0, cap=8):
+    """Số việc chạy song song tự tính theo máy: (số luồng × CPU_PCT%) / số luồng mỗi việc ăn, kẹp 1..cap.
+    i7-14700K 28 luồng → 28×0,8/4 ≈ 6 · Mac M 10 nhân → 2. Ghi đè bằng biến PAR."""
+    if os.environ.get("PAR"): return max(1, int(os.environ["PAR"]))
+    return max(1, min(cap, round((os.cpu_count() or 4) * CPU_PCT / 100 / per_job)))
+
 def start_cpu_watch(log, pct=None):
     """Bật canh CPU cho tiến trình hiện tại (đo mỗi 60 s, vượt trần → tạm dừng ffmpeg 15 s). Tự dừng khi job xong."""
-    pct = pct or float(os.environ.get("E365_CPU", "70"))   # trần CPU máy (anh nâng lên 70% ngày 19/11/2026)
+    pct = pct or CPU_PCT
     kw = dict(creationflags=0x00000200 | 0x08000000) if IS_WIN else dict(start_new_session=True)   # nhóm riêng, không cửa sổ
     subprocess.Popen([sys.executable, str(ROOT / "scripts/cpu_watch.py"), str(os.getpid()), str(log), str(pct)],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kw)

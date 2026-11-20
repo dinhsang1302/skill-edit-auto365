@@ -6,7 +6,7 @@ Vượt trần → tạm dừng mọi ffmpeg 15 s rồi cho chạy tiếp, ghi l
 Dùng: <python> scripts/cpu_watch.py <pid_job> <log> [pct=50]       (build tự bật qua e365.start_cpu_watch)
 Cần psutil (Windows: có trong setup.ps1). Mac không có psutil → dùng `ps` + SIGSTOP/SIGCONT."""
 import os, sys, time, signal, subprocess, datetime
-JOB, LOG = int(sys.argv[1]), sys.argv[2]; PCT = float(sys.argv[3]) if len(sys.argv) > 3 else float(__import__("os").environ.get("E365_CPU", "70"))
+JOB, LOG = int(sys.argv[1]), sys.argv[2]; PCT = float(sys.argv[3]) if len(sys.argv) > 3 else float(__import__("os").environ.get("E365_CPU", "80"))
 NC = os.cpu_count() or 1; CAP = NC * PCT
 try:
     import psutil

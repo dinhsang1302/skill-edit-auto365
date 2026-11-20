@@ -5,7 +5,7 @@ Trích từ quy trình chuẩn của xưởng Edit365 (AGENTS.md). Đường d�
 > **Mac và Windows.** `<python>` = `.venv/bin/python` (Mac) hoặc `.venv\Scripts\python` (Windows). Thư viện `e365` tự chọn phần cứng:
 > Mac = videotoolbox + `scale_vt`, nháp `h264_videotoolbox`; Windows GPU NVIDIA = NVDEC (`-hwaccel cuda`) + `scale_cuda`, nháp `h264_nvenc`
 > (không có `scale_cuda` → giải mã NVDEC + scale CPU; không có GPU → CPU). Ép bằng biến `E365_HW=vt|cuda|none`.
-> Trần CPU = **70% số luồng của máy** (nâng 19/11/2026, đổi qua E365_CPU) (Mac 10 nhân → 500%; i7-14700K 28 luồng → 1400%); x264 bản giao Mac 2 luồng, Windows 4 luồng (`E365_X264_THREADS`).
+> Trần CPU = **80% tổng máy** (anh chốt 20/11/2026, đổi qua E365_CPU; mọi máy tự cân theo %), số việc song song tự tính `e365.auto_par()`; x264 bản giao Mac 2 luồng, Windows 4 luồng (`E365_X264_THREADS`).
 > Các số đo bên dưới là trên Mac. Contact sheet theo mốc dùng `file@giây` (dấu @ vì đường dẫn Windows có "C:").
 
 ## 4. Giới hạn tài nguyên máy (bắt buộc — máy anh Việt làm việc khác song song)
