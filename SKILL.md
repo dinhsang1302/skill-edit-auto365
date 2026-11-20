@@ -129,6 +129,21 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    Không tự thêm chuyển cảnh/hiệu ứng/filter CapCut (người dùng tự thêm). Soát bằng CapCut MCP `capcut_frame` vài mốc trước khi báo.
    Chỉ khi người dùng đòi file ghép: `FINAL=1 VER=n` → 4K HEVC (3840x2160 / 2160x3840).
 
+## Rà bổ sung cảnh 3D sau mỗi bản nháp (từ 1.6.4, anh chốt 20/11/2026 — Everest v5→v6 thêm 8 cảnh)
+Dựng xong nháp có minh hoạ → **tự rà lại toàn bộ lời thoại** tìm câu nói về tính năng / hiệu quả / tầm nhìn / riêng tư / cảm giác trong xe /
+hiểu lầm ("càng tối càng mát?") / vị trí kính mà hình đang **chỉ là cảnh thi công chung chung** → lập bảng đề xuất gửi anh:
+`# | mốc | lời thoại | cảnh 3D đề xuất`, chia **🔴 nên làm** (ý chính: hook, so sánh mã phim theo vị trí kính, riêng tư, đánh đổi tầm nhìn đêm)
+và **🟡 làm thì tốt** (nắng chói, lái đêm, màu phim ≠ cách nhiệt, khoang dịu lại); **không** thay cảnh quay thật đang làm bằng chứng
+(phân tầng màu kính thật, thông số in trên hộp). Kèm ước lượng thời gian (Codex ảnh ~2–3 phút/ảnh, ≤3 song song; viết + preview;
+render 3D song song; dựng lại chỉ đoạn đổi) → anh chọn số cảnh → làm.
+- Cảnh mới **thay shot chèn** ở đúng câu (đặt bằng `o_()`), **không** thay cảnh người dẫn nói (sync), không phá shot đã ghim vùng che biển.
+- Độ dài cảnh = đúng khoảng shot bị thay; tia chạm kính đúng mốc chữ/số của lời.
+- Ảnh nền mới tên riêng (`real/n_*`, `real/m_*`), tránh 2 cảnh cùng ý/cùng ảnh đứng gần nhau.
+- ≥ 5 cảnh → chia agent theo mục dưới. Bản mới → **dòng thời gian CapCut mới** (không sửa dòng anh đang chỉnh).
+- Danh mục cảnh đã có (dùng lại ý, đổi ảnh/xe): truyền sáng % · loại bỏ năng lượng % · riêng tư % · đa lớp + nano · UV 99,9 % · hồng ngoại % ·
+  càng tối ≠ càng mát (2 kính split) · top view 2 mã phim theo vị trí · gia đình ghế sau nắng kính hông · gương đêm qua kính sườn ·
+  nắng chói kính lái · đường đêm qua kính lái · phim tối/sáng cùng chặn nhiệt · khoang lái dịu lại · cửa sổ trời.
+
 ## Chia việc cho subagent (từ 1.6.3, anh chốt 20/11/2026)
 Việc dài (> ~15 phút: nhiều cảnh minh hoạ 3D, che biển nhiều clip, dựng + CapCut) → **giao subagent chạy nền**, phiên chính chỉ điều phối và báo anh.
 Nhiều cảnh minh hoạ (≥ 5) → **sinh thêm subagent chạy song song**, chia theo cảnh để không giẫm nhau:
