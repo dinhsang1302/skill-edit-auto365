@@ -149,7 +149,5 @@ if __name__ == "__main__":
         crop = frame(1.6)[200:740, 100:1060]                       # soi nét 100 %
         cv2.imwrite(str(D / "crop_uv3d.png"), cv2.cvtColor(crop, cv2.COLOR_RGB2BGR)); print("preview ok"); sys.exit()
     n = round(DUR * FPS); out = D / ("uvshield_3d.mp4" if DUR == 2.5 else f"uvshield_3d_{DUR:g}s.mp4")
-    p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-                          "-c:v", "libx264", "-preset", "slow", "-crf", "12", "-pix_fmt", "yuv420p", str(out)], stdin=subprocess.PIPE)
-    for i in range(n): p.stdin.write(frame(i / FPS).tobytes())
-    p.stdin.close(); p.wait(); print("OK", out, n, "khung")
+    sys.path.insert(0, str(D.parents[3] / "scripts")); import fast3d as FX   # <WS>/scripts
+    FX.encode_auto(out, n, frame, FPS, W, H)                    # song song nhiều tiến trình (trần % máy) — 1.6.6

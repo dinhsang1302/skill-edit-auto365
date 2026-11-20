@@ -64,3 +64,20 @@ def encode_parallel(out, n, module, func, fps=25, W=1920, H=1080, crf=12, procs=
     tmp = Path(str(out) + ".part.mp4")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(tmp)], check=True)
     os.replace(tmp, out); print("OK", out, n, "khung,", len(jobs), "tiến trình,", "GPU" if GPU else "CPU", flush=True)
+
+def encode_auto(out, n, frame, fps=25, W=1920, H=1080, crf=12):
+    """Thay encode() tuần tự: hàm khung cấp module → tự render song song nhiều tiến trình (encode_parallel);
+    lambda/hàm lồng → tuần tự như cũ. Module "__main__" → dùng tên file script để tiến trình con import lại."""
+    mod, name = getattr(frame, "__module__", None), getattr(frame, "__qualname__", "")
+    if mod == "__main__": mod = Path(sys.modules["__main__"].__file__).stem; root = str(Path(sys.modules["__main__"].__file__).resolve().parent)
+    else: root = str(Path(sys.modules[mod].__file__).resolve().parent) if mod in sys.modules and getattr(sys.modules[mod], "__file__", None) else os.getcwd()
+    if mod and name and "<" not in name and "." not in name and n >= 24 and os.environ.get("FX_SERIAL") != "1":
+        return encode_parallel(out, n, mod, name, fps, W, H, crf, root=root)
+    tmp = Path(str(out) + ".part.mp4")
+    p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
+                          "-c:v", "libx264", "-preset", "slow", "-crf", str(crf), "-pix_fmt", "yuv420p", "-threads", "3", str(tmp)], stdin=subprocess.PIPE)
+    for i in range(n):
+        fr = frame(i / fps); p.stdin.write(np.ascontiguousarray(np.clip(fr, 0, 255).astype(np.uint8) if fr.dtype != np.uint8 else fr).tobytes())
+    p.stdin.close(); p.wait()
+    if p.returncode: raise SystemExit(f"ffmpeg lỗi {out}")
+    os.replace(tmp, out); print("OK", out, n, "khung (tuần tự)", flush=True)

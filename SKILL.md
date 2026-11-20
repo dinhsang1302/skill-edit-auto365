@@ -96,7 +96,8 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    - **Tăng tốc RTX (từ 1.6.5, anh chốt 20/11/2026)**: `scripts/fast3d.py` — `over()` trộn lớp + `cv2.GaussianBlur` lớn chạy trên GPU (CuPy, setup tự cài
      `cupy-cuda12x[ctk]` khi có NVIDIA; không có GPU → CPU, kết quả như nhau) và `encode_parallel(out, n, "<module>", "<hàm khung>")` chia khung cho
      nhiều tiến trình (số = `e365.auto_par`, theo trần 80 % máy) rồi nối khúc không nén lại. Đo thật: cảnh ảnh thật 4K 144 khung **9 phút → 44 giây**.
-     Thư viện cảnh dùng `over = FX.over; FX.patch_cv2_blur()` (xem `examples/anim_3d/lib3d.py`); hàm khung phải ở cấp module (tiến trình con import lại).
+     Thư viện cảnh dùng `over = FX.over; FX.patch_cv2_blur()` và `encode = FX.encode_auto` (xem `examples/anim_3d/lib3d.py`): **mọi cảnh tự render
+     song song + RTX**, không cần sửa từng cảnh; hàm khung phải ở cấp module (lambda/hàm lồng → tự chạy tuần tự). `FX_SERIAL=1` ép tuần tự.
      Thoại không nói số → cảnh không có số/thanh đo.
    - **Hình minh hoạ: dùng tư liệu có sẵn trước** — ảnh/clip trong `insert/`, b-roll, frame đẹp trích từ chính clip (ảnh hộp, sản phẩm, cận chi tiết).
      **Codex là tuỳ chọn**: kiểm `codex --version` (hoặc `where codex` trên Windows); **máy không có Codex CLI hoặc chưa đăng nhập → bỏ qua, không cài, không hỏi,

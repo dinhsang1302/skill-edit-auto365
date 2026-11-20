@@ -73,7 +73,7 @@ class Plane:
     def warp(self, Hc, arr, interp=cv2.INTER_LINEAR):
         return cv2.warpPerspective(arr, Hc @ self.HG, (WS, HS), flags=interp)
 
-import sys as _sys; _sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "scripts"))   # <WS>/scripts (dự án: projects/<X>/work/anim_3d)
+import sys as _sys; _sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "scripts"))
 import fast3d as FX; FX.patch_cv2_blur()                    # RTX: trộn lớp + làm mờ trên GPU (anh chốt 20/11/2026), không có GPU → CPU
 over = FX.over
 
@@ -273,10 +273,5 @@ def finish(bg):
     return cv2.resize(np.clip(bg, 0, 255), (W, H), interpolation=cv2.INTER_AREA).astype(np.uint8)
 
 def encode(out, n, frame):
-    tmp = Path(str(out) + ".part.mp4")
-    p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-                          "-c:v", "libx264", "-preset", "slow", "-crf", "12", "-pix_fmt", "yuv420p", "-threads", "3", str(tmp)], stdin=subprocess.PIPE)
-    for i in range(n): p.stdin.write(frame(i / FPS).tobytes())
-    p.stdin.close(); p.wait()
-    if p.returncode: raise SystemExit(f"ffmpeg lỗi {out}")
-    import os; os.replace(tmp, out); print("OK", out, n, "khung", flush=True)
+    """Render cảnh: hàm khung cấp module → song song nhiều tiến trình + RTX (fast3d.encode_auto); FX_SERIAL=1 → tuần tự."""
+    return FX.encode_auto(out, n, frame, FPS, W, H)
