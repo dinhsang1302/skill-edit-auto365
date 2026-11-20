@@ -93,6 +93,10 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
      lõi sáng + quầng, vệt sáng dài trôi chậm dọc tia (không chấm tròn), chạm kính → loé nhỏ + tia dội ngược. **Tốc độ tia: bay tới kính ~1,6 s**
      (anh chê nhanh → chậm thêm 1/3); tia đã bay sẵn trước khung đầu để chạm kính đúng mốc lời. Clip dài (`DUR=10`) → mỗi ~2,6 s một đợt tia.
      **Không răng cưa/vỡ nét**: dựng 2× (3840×2160), nét `cv2.LINE_AA` + toạ độ `shift=2`, thu về 1080p `INTER_AREA`, x264 crf 12. Soi khung 100 % trước khi giao.
+   - **Tăng tốc RTX (từ 1.6.5, anh chốt 20/11/2026)**: `scripts/fast3d.py` — `over()` trộn lớp + `cv2.GaussianBlur` lớn chạy trên GPU (CuPy, setup tự cài
+     `cupy-cuda12x[ctk]` khi có NVIDIA; không có GPU → CPU, kết quả như nhau) và `encode_parallel(out, n, "<module>", "<hàm khung>")` chia khung cho
+     nhiều tiến trình (số = `e365.auto_par`, theo trần 80 % máy) rồi nối khúc không nén lại. Đo thật: cảnh ảnh thật 4K 144 khung **9 phút → 44 giây**.
+     Thư viện cảnh dùng `over = FX.over; FX.patch_cv2_blur()` (xem `examples/anim_3d/lib3d.py`); hàm khung phải ở cấp module (tiến trình con import lại).
      Thoại không nói số → cảnh không có số/thanh đo.
    - **Hình minh hoạ: dùng tư liệu có sẵn trước** — ảnh/clip trong `insert/`, b-roll, frame đẹp trích từ chính clip (ảnh hộp, sản phẩm, cận chi tiết).
      **Codex là tuỳ chọn**: kiểm `codex --version` (hoặc `where codex` trên Windows); **máy không có Codex CLI hoặc chưa đăng nhập → bỏ qua, không cài, không hỏi,
@@ -176,6 +180,7 @@ Trần CPU **80% tổng máy** (E365_CPU, anh chốt 20/11/2026 — tính theo %
 | `scripts/build_template.py` | Mẫu build 1 dự án: SEGS → render tuần tự có cache → âm thanh → bản giao |
 | `scripts/transcribe.py`, `words_to_caps.py` | Nhận giọng tiếng Việt từng từ (Mac mlx-whisper / Windows faster-whisper CUDA), gợi ý phụ đề |
 | `scripts/denoise.py` | Tự cài DeepFilterNet 0.5.6 (kiểm SHA-256) + lọc tạp âm giọng (`--auto` theo nền ồn từng file / siêu mạnh / `--soft`) |
+| `scripts/fast3d.py` | Tăng tốc minh hoạ 3D: trộn lớp + làm mờ trên RTX (CuPy), render chia khung nhiều tiến trình |
 | `scripts/fx_light.py` | Hiệu ứng minh hoạ nền sáng style 3M: tia nhiệt/UV, khiên, tia dội, phim quét, panel thanh đo, vệt đỏ, encode |
 | `scripts/shake.py` | Đo rung, chọn khúc ít rung cho shot chèn (cache `work/shake`); `--stab` chống rung tay khi cần (build không tự dùng) |
 | `scripts/bienso/` | Che biển số: `sheet`/`grid`/`fine` (tìm + đọc góc), `tracks.py` (khai báo), `track` (bám phối cảnh), `render` (→ `insert_bs/`, `input_bs/`), `qc` |

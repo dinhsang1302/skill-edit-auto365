@@ -38,6 +38,7 @@ Set-Location $WS
 if (-not (Test-Path ".venv")) { py -3.12 -m venv .venv }
 .\.venv\Scripts\python -m pip install -q --upgrade pip
 .\.venv\Scripts\python -m pip install -q numpy scipy pillow psutil opencv-python-headless faster-whisper nvidia-cublas-cu12 "nvidia-cudnn-cu12==9.*"
+if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) { .\.venv\Scripts\python -m pip install -q "cupy-cuda12x[ctk]" }   # RTX dung minh hoa 3D (scripts/fast3d.py)
 if ($LASTEXITCODE -ne 0) { Write-Host "pip loi - xem thong bao o tren"; exit 1 }
 [Environment]::SetEnvironmentVariable("PYTHONUTF8", "1", "User"); $env:PYTHONUTF8 = "1"
 

@@ -58,3 +58,4 @@ Soát mỗi job. Lọc từ bảng lỗi của xưởng (các job Auto365/VF3/Ma
 | Sóng nhiệt/UV uốn lượn "lăng quăng" | Corolla (19/11/2026) | `fx_light.RAYS=True`: tia thẳng bay chậm, đốm sáng trôi dọc tia |
 | Biển xe nền bị xe chính chạy ngang che dần → tracker trôi, tấm che đè lên xe phía trước, lộ mép biển | Corolla C8680 (19/11/2026) | Dừng bám ở khung bị che; đoạn che dần: so mẫu phần biển còn thấy (matchTemplate) để lấy vị trí, lưu `clipx` (mép xe phía trước) vào npz → `bienso/render.py` không vẽ bên trái mép đó |
 | Hoạt hình 2D phẳng, tia bay nhanh, nét răng cưa | Corolla (19/11/2026) | Diễn hoạt 3D có tracking (`examples/anim_3d/uv3d.py`): máy quay ảo + hiệu ứng chiếu lên mặt phẳng kính, tia bay ~1,6 s, dựng 2× + LINE_AA rồi thu nhỏ |
+| Render 1 cảnh 3D ảnh thật 4K mất 9 phút (1 tiến trình, trộn lớp float trên CPU ~0,35 s/lần) | Everest side13 (20/11/2026) | `fast3d`: over/blur trên RTX + chia khung nhiều tiến trình → 44 s; đo bằng cProfile trước khi tối ưu |

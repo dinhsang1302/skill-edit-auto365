@@ -52,6 +52,9 @@ for n in ["InterDisplay-ExtraBold.otf", "Inter-Bold.otf", "BeVietnamPro-Black.tt
     try: ok(f"{n} ({Path(e365.find_font(n)).parent})")
     except FileNotFoundError: bad(f"font {n} → chép vào assets/fonts/")
 print("== GPU dựng: e365.HW =", e365.HW, "(vt = Mac, cuda = NVIDIA, none = CPU)")
+try:
+    import fast3d; print("== GPU minh hoạ 3D (CuPy):", "CÓ — trộn lớp/làm mờ trên RTX" if fast3d.GPU else "không — chạy CPU (chậm hơn ~2×)")
+except Exception as e: print("== GPU minh hoạ 3D: không nạp được fast3d:", e)
 print("== Lọc tạp âm giọng (DeepFilterNet)")
 import denoise
 (ok if denoise.binary() else bad)("deep-filter " + (denoise.binary() or "→ <python> scripts/denoise.py --install"))
