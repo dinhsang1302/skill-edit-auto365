@@ -129,6 +129,17 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
    Không tự thêm chuyển cảnh/hiệu ứng/filter CapCut (người dùng tự thêm). Soát bằng CapCut MCP `capcut_frame` vài mốc trước khi báo.
    Chỉ khi người dùng đòi file ghép: `FINAL=1 VER=n` → 4K HEVC (3840x2160 / 2160x3840).
 
+## Chia việc cho subagent (từ 1.6.3, anh chốt 20/11/2026)
+Việc dài (> ~15 phút: nhiều cảnh minh hoạ 3D, che biển nhiều clip, dựng + CapCut) → **giao subagent chạy nền**, phiên chính chỉ điều phối và báo anh.
+Nhiều cảnh minh hoạ (≥ 5) → **sinh thêm subagent chạy song song**, chia theo cảnh để không giẫm nhau:
+- **Agent A (tích hợp)**: cảnh chính + mọi sửa `work/build.py`/thư viện chung + dựng nháp + CapCut. Chỉ A được sửa build và thư viện dùng chung (không phá API đang import).
+- **Agent B, C… (cảnh phụ)**: mỗi agent một file cảnh riêng (`work/anim_3d/scenes3d_b.py`…), ảnh nền thư mục riêng (`real/m_*`), xuất mp4 tên riêng;
+  **chỉ ĐỌC** `build.py` (đo độ dài shot theo câu thoại bằng `o_()`/`src2out`). Xong ghi file hẹn `work/anim_3d/B_DONE.txt`
+  (`tên | đoạn | mốc nguồn | độ dài s | số khung | câu thoại`). A chờ file hẹn rồi mới ghép + dựng.
+- Phân công đổi giữa chừng → nhắn agent đang chạy (SendMessage) phạm vi mới trước khi sinh agent mới.
+- **Codex tối đa 3 lệnh song song tính chung mọi agent**; trần CPU 80% máy vẫn áp chung (cpu_watch canh cả máy).
+- Mỗi agent tự QC ảnh/preview/crop 100 % phần của mình; A soát contact sheet bản dựng cuối. Phiên chính đọc báo cáo, xem sheet, báo anh ngắn.
+
 ## Bước 3 — Giao
 - Mở thư mục chọn sẵn file: Mac `open -R <file>`, Windows `explorer.exe /select,"<file theo dạng C:\...>"`.
 - Báo 3–5 dòng: mạch dựng, chỗ cắt vì lỗi, thông số đã dùng + nguồn, phần tạm (nhạc/CTA), từ cần soát.
