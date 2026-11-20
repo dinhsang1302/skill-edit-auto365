@@ -265,6 +265,11 @@ def framed(photo, x, y, w, h, r=36):
     return bg, (lambda px, py: (x + px * sx, y + py * sy))
 
 def encode(out, n, frame):
+    """Render cảnh (1.6.7): hàm khung cấp module → song song nhiều tiến trình theo trần % máy (fast3d.encode_auto); không có fast3d → tuần tự."""
+    try:
+        import sys as _s; _s.path.insert(0, str(Path(__file__).resolve().parent)); import fast3d as FX
+        return FX.encode_auto(out, n, frame, FPS, W, H, crf=16)
+    except ImportError: pass
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                           "-c:v", "libx264", "-preset", "medium", "-crf", "16", "-pix_fmt", "yuv420p", "-threads", "4", str(out)], stdin=subprocess.PIPE)
     for i in range(n): p.stdin.write(frame(i / FPS).convert("RGBA").tobytes())

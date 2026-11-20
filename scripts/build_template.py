@@ -353,7 +353,7 @@ def capcut(project):
     import capcut_export as CC
     d = PRJ / "work/capcut"; d.mkdir(parents=True, exist_ok=True)
     lens = [seg_len(s) for s in SEGS]; starts = list(np.cumsum([0] + lens)[:-1]); total = sum(lens)
-    st = audio(total, starts); clips, texts = [], []
+    st = audio(total, starts); clips, texts, movs = [], [], []
     def wh(f): return Image.open(f).size if Path(f).suffix.lower() in E.IMG_EXT else (E.probe(f)["w"], E.probe(f)["h"])
     for s, s0 in zip(SEGS, starts):
         L = seg_len(s); full = shots_of(s)
@@ -385,9 +385,13 @@ def capcut(project):
             bw, bh = (x1 - x0) // 2 * 2, (y1 - y0) // 2 * 2
             txt = " ".join(w.text for w, _, _ in pl)
             f = d / f"chu_{s['id']}_{j}_{zlib.crc32((txt + str((a, b, x0, y0, th))).encode()):08x}.mov"
-            if not f.exists():
-                CC.alpha_mov(f, bw, bh, FPS, b - a + 0.04, lambda c, t, pl=pl, a=a, x0=x0, y0=y0: [w.draw(c, a + t, x - x0, y - y0) for w, x, y in pl])
+            if not f.exists():                             # 1.6.7: gom lại, render MOV song song ở cuối (ffmpeg ProRes là tiến trình riêng)
+                movs.append((f, bw, bh, b - a + 0.04, lambda c, t, pl=pl, a=a, x0=x0, y0=y0: [w.draw(c, a + t, x - x0, y - y0) for w, x, y in pl]))
             texts.append(dict(path=f, start=s0 + a, dur=b - a + 0.04, box=(x0, y0, x0 + bw, y0 + bh)))
+    if movs:
+        import concurrent.futures as CF
+        print(f"chữ MOV: {len(movs)} dòng, {PAR} luồng song song", flush=True)
+        with CF.ThreadPoolExecutor(max(1, PAR)) as ex: list(ex.map(lambda m: CC.alpha_mov(m[0], m[1], m[2], FPS, m[3], m[4]), movs))
     CC.export(CAPCUT, W, H, FPS, clips, texts, voice_pieces(starts, st["gain"]), st.get("music") if MUSIC else None, st.get("sfx"),
               clear=os.environ.get("CAPCUT_CLEAR") == "1")
 

@@ -78,4 +78,13 @@ def run(n):
     if enc.returncode: raise SystemExit(f"encode lỗi {n}")
     tmp.replace(out); print(n,"→",out,f"{k} khung {time.time()-t0:.0f}s",flush=True)
 if __name__=="__main__":
-    for n in sys.argv[1:]: run(n)
+    # 1.6.7: nhiều clip chạy song song (mỗi clip 1 tiến trình: NVDEC giải mã + NVENC nén); kẹp 3 vì card GeForce giới hạn số phiên NVENC
+    ns=sys.argv[1:]
+    if len(ns)<=1:
+        for n in ns: run(n)
+    else:
+        import concurrent.futures as CF, os as _o
+        try:
+            _s.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1])); import e365; par=e365.auto_par(per_job=6,cap=3)
+        except Exception: par=min(3,max(1,(_o.cpu_count() or 4)//8))
+        with CF.ProcessPoolExecutor(min(par,len(ns))) as ex: list(ex.map(run,ns))

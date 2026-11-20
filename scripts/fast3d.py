@@ -37,14 +37,18 @@ def patch_cv2_blur():
     """Cho mọi cv2.GaussianBlur trong tiến trình đi qua blur() (GPU khi đáng)."""
     cv2.GaussianBlur = blur
 
+def _rgb(fr):
+    """Khung → RGB uint8 HxWx3 (nhận numpy float/uint8 hoặc ảnh PIL)."""
+    if hasattr(fr, "convert"): return np.asarray(fr.convert("RGB"))
+    return fr if fr.dtype == np.uint8 else np.clip(fr, 0, 255).astype(np.uint8)
+
 def _worker(args):
     mod, fn, a, b, fps, W, H, out, crf, root = args
     sys.path.insert(0, root); M = __import__(mod); f = getattr(M, fn)
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
                           "-c:v", "libx264", "-preset", "slow", "-crf", str(crf), "-pix_fmt", "yuv420p", "-threads", "2", out], stdin=subprocess.PIPE)
     for i in range(a, b):
-        fr = f(i / fps)
-        if fr.dtype != np.uint8: fr = np.clip(fr, 0, 255).astype(np.uint8)
+        fr = _rgb(f(i / fps))
         p.stdin.write(np.ascontiguousarray(fr).tobytes())
     p.stdin.close(); p.wait(); return p.returncode
 
@@ -77,7 +81,7 @@ def encode_auto(out, n, frame, fps=25, W=1920, H=1080, crf=12):
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
                           "-c:v", "libx264", "-preset", "slow", "-crf", str(crf), "-pix_fmt", "yuv420p", "-threads", "3", str(tmp)], stdin=subprocess.PIPE)
     for i in range(n):
-        fr = frame(i / fps); p.stdin.write(np.ascontiguousarray(np.clip(fr, 0, 255).astype(np.uint8) if fr.dtype != np.uint8 else fr).tobytes())
+        p.stdin.write(np.ascontiguousarray(_rgb(frame(i / fps))).tobytes())
     p.stdin.close(); p.wait()
     if p.returncode: raise SystemExit(f"ffmpeg lỗi {out}")
     os.replace(tmp, out); print("OK", out, n, "khung (tuần tự)", flush=True)

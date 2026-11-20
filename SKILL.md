@@ -98,6 +98,9 @@ Chạy lần lượt, chỉ báo người dùng 1 dòng ở mỗi mốc ("Đang 
      nhiều tiến trình (số = `e365.auto_par`, theo trần 80 % máy) rồi nối khúc không nén lại. Đo thật: cảnh ảnh thật 4K 144 khung **9 phút → 44 giây**.
      Thư viện cảnh dùng `over = FX.over; FX.patch_cv2_blur()` và `encode = FX.encode_auto` (xem `examples/anim_3d/lib3d.py`): **mọi cảnh tự render
      song song + RTX**, không cần sửa từng cảnh; hàm khung phải ở cấp module (lambda/hàm lồng → tự chạy tuần tự). `FX_SERIAL=1` ép tuần tự.
+   - **Áp tăng tốc cho mọi bước render (1.6.7)**: minh hoạ nền sáng `fx_light.encode` → cũng qua `encode_auto` (song song); che biển
+     `bienso/render.py <n1> <n2> …` → nhiều clip chạy song song (kẹp 3 vì GeForce giới hạn phiên NVENC); chữ MOV cho CapCut → gom lại render
+     song song `PAR` luồng (thử 12 dòng: 1,8 s → 0,5 s, giống hệt bản tuần tự); dựng đoạn → song song `auto_par` + chỉ dựng lại đoạn đổi.
      Thoại không nói số → cảnh không có số/thanh đo.
    - **Hình minh hoạ: dùng tư liệu có sẵn trước** — ảnh/clip trong `insert/`, b-roll, frame đẹp trích từ chính clip (ảnh hộp, sản phẩm, cận chi tiết).
      **Codex là tuỳ chọn**: kiểm `codex --version` (hoặc `where codex` trên Windows); **máy không có Codex CLI hoặc chưa đăng nhập → bỏ qua, không cài, không hỏi,
